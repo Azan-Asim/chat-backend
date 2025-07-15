@@ -20,7 +20,8 @@ export class WorkspaceService {
     @InjectModel(MessageRead) private messageReadModel: typeof MessageRead,
   ) { }
 
-  async getAllPublicWorkspaces(pageNo?: number, pageSize?: number) {
+  async getAllPublicWorkspaces(req: any, pageNo?: number, pageSize?: number) {
+    const userId = req.user.id
     try {
       const where = { type: 'public' };
 
@@ -70,24 +71,39 @@ export class WorkspaceService {
 
       const publicWorkspaces = await this.workspaceModel.findAll(queryOptions);
 
+     const allUnreadedCount = await Promise.all(
+        publicWorkspaces.map(w => this.getWorkspaceUnreadCount(w.id, userId))
+      );
+
       const transformed = publicWorkspaces.map(workspace => {
         const w = workspace.toJSON();
+
+        const unreadInfo = allUnreadedCount.find(
+          u => u.workspaceId === w.id
+        );
+
+        w.unreadedCount = unreadInfo ? unreadInfo.unreadedCount : 0;
+
         w.lastMessage = w.messages?.[0] || null;
+
         delete w.messages;
+
         return w;
       });
 
 
       return success(
-        'Public Workspaces fetched successfully',
+        'Private Workspaces fetched successfully',
         transformed,
         {
+          aa: allUnreadedCount,
           totals: totalCount,
           ...(pageNo && pageSize
             ? { pageNo, pageSize }
             : {}),
         }
       );
+
 
     } catch (error) {
       return failure(error.message || 'Failed to fetch public workspaces');
@@ -665,6 +681,5 @@ export class WorkspaceService {
       throw error;
     }
   }
-
 
 }

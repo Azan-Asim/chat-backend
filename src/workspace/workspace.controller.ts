@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Request, UseGuards } from '@nestjs/common';
 import { WorkspaceService } from './workspace.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 // import { OptionalJwtAuthGuard } from 'src/auth/OptionalJwtAuthGuard';
@@ -12,11 +12,13 @@ export class WorkspaceController {
   constructor(private readonly WorkspaceService: WorkspaceService) { }
 
   @Get('public')
+  @UseGuards(JwtAuthGuard)
   async getPublicWorkspace(
+    @Request() req: any,
     @Query('pageNo') pageNo: string,
     @Query('pageSize') pageSize: string,
   ) {
-    return this.WorkspaceService.getAllPublicWorkspaces(Number(pageNo), Number(pageSize))
+    return this.WorkspaceService.getAllPublicWorkspaces(req, Number(pageNo), Number(pageSize))
   }
 
   @Post('public/createWorkspace')
