@@ -140,8 +140,7 @@ export class WorkspaceHandlersService {
       });
 
       const msg = lastMessage?.toJSON()
-      console.log(msg)
-      socket.emit('newMessage', { workspaceId, lastMessage, unreadMessages: unreadedCount })
+      server.emit('newMessage', { workspaceId, lastMessage, unreadMessages: unreadedCount })
     });
   }
 }
