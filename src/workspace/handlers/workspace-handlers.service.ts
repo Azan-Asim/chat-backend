@@ -6,48 +6,103 @@ import { MessageRead } from 'src/message/messageRead.model';
 import { User } from 'src/user/user.model';
 // import { Workspace } from '../models/workspace.model';
 import { WorkspaceService } from '../workspace.service';
+import { WorkspaceMember } from '../models/workspaceMemeber.model';
 
 @Injectable()
 export class WorkspaceHandlersService {
-  constructor(private readonly WorkspaceService: WorkspaceService){}
+  constructor(private readonly WorkspaceService: WorkspaceService) { }
 
   handle(server: Server, socket: Socket, onlineUsers: Map<string, Set<string>>) {
     this.handleReadMessage(server, socket);
-    this.handleTyping(socket);
-    this.handleStopTyping(socket);
+    this.handleTyping(server, socket, onlineUsers);
+    this.handleStopTyping(server, socket, onlineUsers);
   }
 
-  private handleTyping(socket: Socket) {
-    socket.on('typing', (workspaceId: string) => {
+  private async handleTyping(
+    server: Server,
+    socket: Socket,
+    onlineUsers: Map<string, Set<string>>
+  ) {
+    socket.on('typing', async (workspaceId: string) => {
       const user = socket.data.user;
 
       if (!workspaceId || !user?.id) {
         return;
       }
 
-      socket.to(workspaceId).emit('userTyping', {
-        workspaceId,
-        userId: user.id,
-        name: user.name,
-      });
+      try {
+        const workspaceMembers = await User.findAll({
+          include: [{
+            model: WorkspaceMember,
+            as: 'member',
+            where: { workspaceId }
+          }],
+          attributes: ['id', 'name', 'email']
+        });
+
+        for (const member of workspaceMembers) {
+          const memberId = member.id;
+          if (memberId === user.id) continue;
+
+          const sockets = onlineUsers.get(memberId);
+          if (!sockets) continue;
+
+          for (const socketId of sockets) {
+            server.to(socketId).emit('userTyping', {
+              workspaceId,
+              userId: user.id,
+              name: user.name,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error handling typing:', err);
+      }
     });
   }
 
-  private handleStopTyping(socket: Socket) {
-    socket.on('stopTyping', (workspaceId: string) => {
+  private async handleStopTyping(
+    server: Server,
+    socket: Socket,
+    onlineUsers: Map<string, Set<string>>
+  ) {
+    socket.on('stopTyping', async (workspaceId: string) => {
       const user = socket.data.user;
 
       if (!workspaceId || !user?.id) {
         return;
       }
 
-      // Broadcast to all in the room *except the sender*
-      socket.to(workspaceId).emit('userStopTyping', {
-        workspaceId,
-        userId: user.id,
-      });
+      try {
+        const workspaceMembers = await User.findAll({
+          include: [{
+            model: WorkspaceMember,
+            as: 'member',
+            where: { workspaceId }
+          }],
+          attributes: ['id', 'name', 'email']
+        });
+
+        for (const member of workspaceMembers) {
+          const memberId = member.id;
+          if (memberId === user.id) continue;
+
+          const sockets = onlineUsers.get(memberId);
+          if (!sockets) continue;
+
+          for (const socketId of sockets) {
+            server.to(socketId).emit('userStopTyping', {
+              workspaceId,
+              userId: user.id,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error handling stopTyping:', err);
+      }
     });
   }
+
 
   private handleReadMessage(server: Server, socket: Socket) {
     const userId = socket.data.user.id
