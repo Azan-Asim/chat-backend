@@ -21,6 +21,8 @@ import { User } from 'src/user/user.model';
   },
 })
 export class WorkspaceChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  private readonly onlineUsers = new Map<string, Set<string>>();
+
   @WebSocketServer()
   server: Server;
 
@@ -55,14 +57,22 @@ export class WorkspaceChatGateway implements OnGatewayConnection, OnGatewayDisco
       socket.emit('welcome', {
         message: `Welcome user ${(socket.data as any).user.email}! at workspace`,
       });
+
+      const userId = (socket.data as any).user.id
+      if (!this.onlineUsers.has(userId)) {
+        this.onlineUsers.set(userId, new Set());
+      }
+      this.onlineUsers.get(userId)!.add(socket.id);
+
+      console.log(`[ONLINE] User ${userId} now has ${this.onlineUsers.get(userId)!.size} sockets`);
       console.log('User authenticated at workspace:', {
         id: (socket.data as any).user.id,
         email: (socket.data as any).user.email,
         name: (socket.data as any).user.name,
       });
 
-      this.workspaceMessageHandlers.handle(this.server, socket);
-      this.workspaceHandlers.handle(this.server, socket);
+ this.workspaceMessageHandlers.handle(this.server, socket, this.onlineUsers);
+      this.workspaceHandlers.handle(this.server, socket, this.onlineUsers);
 
     } catch (err) {
       console.error('Authentication error:', err.message);
@@ -71,6 +81,22 @@ export class WorkspaceChatGateway implements OnGatewayConnection, OnGatewayDisco
   }
 
   handleDisconnect(socket: Socket) {
+    const user = socket.data?.user;
+
+    if (user) {
+      const userId = user.id;
+      const sockets = this.onlineUsers.get(userId);
+      if (sockets) {
+        sockets.delete(socket.id);
+        if (sockets.size === 0) {
+          this.onlineUsers.delete(userId);
+          console.log(`[OFFLINE] User ${userId} is now offline`);
+        } else {
+          console.log(`[ONLINE] User ${userId} still has ${sockets.size} sockets`);
+        }
+      }
+    }
+
     console.log(`Socket disconnected from workspace: ${socket.id}`);
   }
 }

@@ -6,7 +6,6 @@ import { Workspace } from './models/workspace.model';
 import { User } from 'src/user/user.model';
 import { WorkspaceMember } from './models/workspaceMemeber.model';
 import { Message } from 'src/message/message.model';
-import { WorkspaceChatGateway } from './gateway/gateway';
 import { WorkspaceMessageHandlersService } from './handlers/workspace-message-handlers.service';
 import { WorkspaceHandlersService } from './handlers/workspace-handlers.service';
 import { MessageRead } from 'src/message/messageRead.model';
@@ -16,6 +15,7 @@ import { MessageRead } from 'src/message/messageRead.model';
     SequelizeModule.forFeature([Workspace, WorkspaceMember, User, Message, MessageRead]),
   ],
   controllers: [WorkspaceController],
-  providers: [WorkspaceService, WorkspaceMessageHandlersService, WorkspaceHandlersService]
+  providers: [WorkspaceService, WorkspaceMessageHandlersService, WorkspaceHandlersService],
+  exports: [WorkspaceService]
 })
 export class WorkspaceModule {}

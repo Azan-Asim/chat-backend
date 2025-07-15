@@ -4,11 +4,14 @@ import { Server, Socket } from 'socket.io';
 import { Message } from 'src/message/message.model';
 import { MessageRead } from 'src/message/messageRead.model';
 import { User } from 'src/user/user.model';
-import { Workspace } from '../models/workspace.model';
+// import { Workspace } from '../models/workspace.model';
+import { WorkspaceService } from '../workspace.service';
 
 @Injectable()
 export class WorkspaceHandlersService {
-  handle(server: Server, socket: Socket) {
+  constructor(private readonly WorkspaceService: WorkspaceService){}
+
+  handle(server: Server, socket: Socket, onlineUsers: Map<string, Set<string>>) {
     this.handleReadMessage(server, socket);
     this.handleTyping(socket);
     this.handleStopTyping(socket);
@@ -75,7 +78,7 @@ export class WorkspaceHandlersService {
         readAt: now,
       });
 
-      const unreadedCount = await this.getWorkspaceUnreadCount(workspaceId, userId)
+      const unreadedCount = await this.WorkspaceService.getWorkspaceUnreadCount(workspaceId, userId)
       const lastMessage = await Message.findOne({
         where: { workspaceId },
         order: [['createdAt', 'DESC']],
@@ -85,33 +88,5 @@ export class WorkspaceHandlersService {
       console.log(msg)
       socket.emit('newMessage', { workspaceId, lastMessage, unreadMessages: unreadedCount })
     });
-  }
-
-  async getWorkspaceUnreadCount(workspaceId: string, userId: string) {
-    // console.log(workspaceId, userId)
-    try {
-      const unreadMessages = await Message.findAll({
-        where: { workspaceId },
-        include: [
-          {
-            model: MessageRead,
-            as: 'messageReads',
-            required: false,
-            where: { userId },
-          },
-          {
-            model: Workspace,
-            attributes: ['id', 'name']
-          },
-        ],
-        group: ['Message.id'],
-        having: Sequelize.literal('COUNT(`messageReads`.`id`) = 0'),
-      });
-      return { unreadedCount: unreadMessages.length, workspaceId };
-
-    } catch (error) {
-      console.error('Error getting unread count:', error);
-      throw error;
-    }
   }
 }

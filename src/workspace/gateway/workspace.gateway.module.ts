@@ -4,9 +4,10 @@ import { WorkspaceMessageHandlersService } from "../handlers/workspace-message-h
 import { WorkspaceHandlersService } from "../handlers/workspace-handlers.service";
 import { SequelizeModule } from "@nestjs/sequelize";
 import { User } from "src/user/user.model";
+import { WorkspaceModule } from "../workspace.module";
 
 @Module({
-  imports:[SequelizeModule.forFeature([User])],
+  imports:[SequelizeModule.forFeature([User]), WorkspaceModule],
   providers: [WorkspaceChatGateway, WorkspaceMessageHandlersService, WorkspaceHandlersService]
 })
 
