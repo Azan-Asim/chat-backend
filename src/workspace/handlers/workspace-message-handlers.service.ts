@@ -109,7 +109,7 @@ export class WorkspaceMessageHandlersService {
         for (const member of workspaceMembers) {
           const memberId = member.id;
 
-          // if (memberId === senderId) continue; 
+          // if (memberId === senderId) continue;   // if not have to send to the sender 
 
           const unread = await this.WorkspaceService.getWorkspaceUnreadCount(workspaceId, memberId);
 
