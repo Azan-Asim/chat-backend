@@ -443,11 +443,11 @@ export class WorkspaceService {
         throw new NotFoundException('Workspace not found');
       }
 
-       const isAdmin = await this.workspaceMemberModel.findOne({
-      where: { workspaceId: id, userId, type: 'admin' },
-    });
+      const isAdmin = await this.workspaceMemberModel.findOne({
+        where: { workspaceId: id, userId, type: 'admin' },
+      });
 
-    if (!isAdmin) {
+      if (!isAdmin) {
         throw new ForbiddenException('You are not allowed to update this workspace');
       }
 
@@ -736,7 +736,7 @@ export class WorkspaceService {
     id: string,
     req: any,
     imageUrl: string | null,
-  ): Promise<Workspace> {
+  ) {
     const userId = req.user.id;
 
     const isAdmin = await this.workspaceMemberModel.findOne({
@@ -762,4 +762,55 @@ export class WorkspaceService {
 
     return workspace;
   }
+
+  async toggleUpdateMemberType(
+    memberId: string,
+    currentUserId: string,
+  ) {
+    try {
+       const member = await this.workspaceMemberModel.findByPk(memberId);
+
+    if (!member) {
+      throw new NotFoundException('Workspace member not found');
+    }
+
+    const isAdmin = await this.workspaceMemberModel.findOne({
+      where: {
+        workspaceId: member.workspaceId,
+        userId: currentUserId,
+        type: 'admin',
+      },
+    });
+
+    if (!isAdmin) {
+      throw new ForbiddenException('You are not an admin of this workspace');
+    }
+
+    if (member.type === 'admin') {
+      const adminCount = await this.workspaceMemberModel.count({
+        where: {
+          workspaceId: member.workspaceId,
+          type: 'admin',
+        },
+      });
+
+      if (adminCount <= 1) {
+        throw new ForbiddenException(
+          'Cannot remove the last admin from the workspace',
+        );
+      }
+
+      member.type = 'member';
+    } else {
+      member.type = 'admin';
+    }
+
+    await member.save();
+
+    return success("Member Type Changed Successfully", member)
+    } catch (error) {
+      throw new InternalServerErrorException(error)
+    }
+  }
+
 }

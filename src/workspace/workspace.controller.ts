@@ -7,6 +7,7 @@ import { AddUserToPublicWorkspaceDto } from './dto/addUserToPublicWorkspace.dto'
 import { AddUserToPrivateWorkspaceDto } from './dto/addUserToPrivateWorkspace.dto copy';
 import { SendMessageDto } from './dto/sendMessage.dto';
 import * as path from 'path';
+import * as fs from 'fs';
 import { CryptUtil } from 'src/utils/crypt.util';
 import { diskStorage } from 'multer';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -156,7 +157,7 @@ export class WorkspaceController {
   }
 
 
-  @Patch('/updateProfilePicture/:id')
+  @Post('/updateWorkspacePicture/:id')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('image', {
@@ -185,6 +186,35 @@ export class WorkspaceController {
     @UploadedFile() file?: Express.Multer.File,
   ) {
     const imageUrl = file ? `/uploads/workspaces/${file.filename}` : null;
-    return this.WorkspaceService.updateWorkspacePicture(id, req, imageUrl);
+    try {
+      return await this.WorkspaceService.updateWorkspacePicture(
+        id,
+        req,
+        imageUrl,
+      );
+    } catch (err) {
+      if (file) {
+        const filePath = path.join(process.cwd(), 'uploads', 'workspaces', file.filename);
+        fs.unlink(filePath, (unlinkErr) => {
+          if (unlinkErr) {
+            console.error(`Failed to delete unused image: ${filePath}`, unlinkErr);
+          }
+        });
+      }
+      throw err; // rethrow original error
+    }
   }
+
+  @Post('/toggleupdateMembertype/:id')
+  @UseGuards(JwtAuthGuard)
+  async updateMembertype(
+    @Param('id') memberId: string,
+    @Req() req: any,
+  ) {
+    return this.WorkspaceService.toggleUpdateMemberType(
+      memberId,
+      req.user.id,
+    );
+  }
+
 }
