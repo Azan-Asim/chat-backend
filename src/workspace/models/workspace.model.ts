@@ -7,6 +7,7 @@ import {
   DataType,
   ForeignKey,
   BelongsTo,
+  AllowNull,
 } from 'sequelize-typescript';
 import { WorkspaceMember } from './workspaceMemeber.model';
 import { User } from 'src/user/user.model';
@@ -25,6 +26,14 @@ export class Workspace extends Model {
     type: DataType.ENUM('public', 'private'),
   })
   declare type: 'public' | 'private';
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: true,
+    defaultValue: '',
+  })
+  declare imageUrl: string | null;
+
 
   @ForeignKey(() => User)
   @Column

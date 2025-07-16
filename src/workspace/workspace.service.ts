@@ -432,7 +432,8 @@ export class WorkspaceService {
   }
 
   async updateWorkspaceById(req: any, id: string, updateWorkspaceDto: UpdateWorkspaceDto) {
-    const userId = req.user.id
+   try {
+     const userId = req.user.id
 
     const workspace = await this.workspaceModel.findOne({
       where: { id },
@@ -442,8 +443,6 @@ export class WorkspaceService {
       throw new NotFoundException('Workspace not found');
     }
 
-    console.log("wwwwU", userId)
-    console.log("wwww", workspace)
     if (workspace.createdBy !== userId) {
       throw new ForbiddenException('You are not allowed to update this workspace');
     }
@@ -453,6 +452,9 @@ export class WorkspaceService {
     return success('Workspace updated successfully', {
       workspace: workspace.toJSON(),
     });
+   } catch (error) {
+    throw new InternalServerErrorException(error)
+   }
   }
 
   async deleteWorkspaceById(req: any, workspaceId: string) {
@@ -726,4 +728,35 @@ export class WorkspaceService {
   }
 }
 
+async updateWorkspacePicture(
+    id: string,
+    req: any,
+    imageUrl: string | null,
+  ): Promise<Workspace> {
+    const userId = req.user.id;
+
+    const isAdmin = await this.workspaceMemberModel.findOne({
+      where: { workspaceId: id, userId, type: 'admin' },
+    });
+
+    if (!isAdmin) {
+      throw new ForbiddenException('You are not an admin of this workspace');
+    }
+
+    const workspace = await this.workspaceModel.findByPk(id);
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    if(imageUrl === null){
+      throw new NotFoundException('image not found');
+    }
+
+    workspace.imageUrl = imageUrl;
+
+    await workspace.save();
+
+    return workspace;
+  }
 }

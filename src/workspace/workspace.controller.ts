@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Request, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { WorkspaceService } from './workspace.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 // import { OptionalJwtAuthGuard } from 'src/auth/OptionalJwtAuthGuard';
@@ -6,6 +6,10 @@ import { UpdateWorkspaceDto } from './dto/updateWorkspace.dto';
 import { AddUserToPublicWorkspaceDto } from './dto/addUserToPublicWorkspace.dto';
 import { AddUserToPrivateWorkspaceDto } from './dto/addUserToPrivateWorkspace.dto copy';
 import { SendMessageDto } from './dto/sendMessage.dto';
+import * as path from 'path';
+import { CryptUtil } from 'src/utils/crypt.util';
+import { diskStorage } from 'multer';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('workspace')
 export class WorkspaceController {
@@ -86,7 +90,7 @@ export class WorkspaceController {
     return this.WorkspaceService.getWorkspaceById(req, id);
   }
 
-  @Patch('private/:id')
+  @Patch('/:id')
   @UseGuards(JwtAuthGuard)
   async updateWorkspaceById(
     @Request() req: any,
@@ -150,5 +154,37 @@ export class WorkspaceController {
     const workspaceId = id
     return this.WorkspaceService.getWorkspaceMembers(userId, workspaceId, Number(pageNo), Number(pageSize))
   }
-  
+
+
+  @Patch('/updateProfilePicture/:id')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: diskStorage({
+        destination: './uploads/workspaces',
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname);
+          cb(null, `${CryptUtil.generateId()}${ext}`);
+        },
+      }),
+      limits: {
+        fileSize: 10 * 1024 * 1024,
+      },
+      fileFilter: (req, file, cb) => {
+        if (!file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
+          cb(new BadRequestException('Only image files (jpg, png, jpeg) are allowed!'), false);
+        } else {
+          cb(null, true);
+        }
+      },
+    }),
+  )
+  async updateWorkspacePicture(
+    @Request() req: Request,
+    @Param('id') id: string,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
+    const imageUrl = file ? `/uploads/workspaces/${file.filename}` : null;
+    return this.WorkspaceService.updateWorkspacePicture(id, req, imageUrl);
+  }
 }

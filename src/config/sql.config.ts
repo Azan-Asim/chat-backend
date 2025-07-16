@@ -11,4 +11,6 @@ export const mysqlConfig: SequelizeModuleOptions = {
   autoLoadModels: true,
   synchronize: true, 
   logging: false,
+  
 };
+ 
