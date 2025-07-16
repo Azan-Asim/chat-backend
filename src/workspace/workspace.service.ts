@@ -443,7 +443,11 @@ export class WorkspaceService {
         throw new NotFoundException('Workspace not found');
       }
 
-      if (workspace.createdBy !== userId) {
+       const isAdmin = await this.workspaceMemberModel.findOne({
+      where: { workspaceId: id, userId, type: 'admin' },
+    });
+
+    if (!isAdmin) {
         throw new ForbiddenException('You are not allowed to update this workspace');
       }
 
@@ -742,7 +746,6 @@ export class WorkspaceService {
     if (!isAdmin) {
       throw new ForbiddenException('You are not an admin of this workspace');
     }
-
     const workspace = await this.workspaceModel.findByPk(id);
 
     if (!workspace) {
