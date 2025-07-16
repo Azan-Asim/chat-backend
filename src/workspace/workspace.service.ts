@@ -432,29 +432,29 @@ export class WorkspaceService {
   }
 
   async updateWorkspaceById(req: any, id: string, updateWorkspaceDto: UpdateWorkspaceDto) {
-   try {
-     const userId = req.user.id
+    try {
+      const userId = req.user.id
 
-    const workspace = await this.workspaceModel.findOne({
-      where: { id },
-    });
+      const workspace = await this.workspaceModel.findOne({
+        where: { id },
+      });
 
-    if (!workspace) {
-      throw new NotFoundException('Workspace not found');
+      if (!workspace) {
+        throw new NotFoundException('Workspace not found');
+      }
+
+      if (workspace.createdBy !== userId) {
+        throw new ForbiddenException('You are not allowed to update this workspace');
+      }
+
+      await workspace.update(updateWorkspaceDto);
+
+      return success('Workspace updated successfully', {
+        workspace: workspace.toJSON(),
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(error)
     }
-
-    if (workspace.createdBy !== userId) {
-      throw new ForbiddenException('You are not allowed to update this workspace');
-    }
-
-    await workspace.update(updateWorkspaceDto);
-
-    return success('Workspace updated successfully', {
-      workspace: workspace.toJSON(),
-    });
-   } catch (error) {
-    throw new InternalServerErrorException(error)
-   }
   }
 
   async deleteWorkspaceById(req: any, workspaceId: string) {
@@ -683,52 +683,52 @@ export class WorkspaceService {
   }
 
 
- async getWorkspaceMembers(userId: string, workspaceId: string, pageNo?: number, pageSize?: number) {
-  console.log(pageNo, pageSize)
-  try {
-    const workspace = await Workspace.findByPk(workspaceId);
-    if (!workspace) throw new NotFoundException('Workspace not found');
+  async getWorkspaceMembers(userId: string, workspaceId: string, pageNo?: number, pageSize?: number) {
+    console.log(pageNo, pageSize)
+    try {
+      const workspace = await Workspace.findByPk(workspaceId);
+      if (!workspace) throw new NotFoundException('Workspace not found');
 
-    const isMember = await WorkspaceMember.findOne({ where: { workspaceId, userId } });
-    if (!isMember) throw new ForbiddenException('You are not a member of this workspace');
+      const isMember = await WorkspaceMember.findOne({ where: { workspaceId, userId } });
+      if (!isMember) throw new ForbiddenException('You are not a member of this workspace');
 
-    const where = { workspaceId };
+      const where = { workspaceId };
 
-    const queryOptions: any = {
-      include: [
-        {
-          model: WorkspaceMember,
-          as: 'member',
-          where,
-          attributes: ['type']
-        }
-      ],
-      attributes: ['id', 'name', 'email', 'imageUrl'],
-    };
+      const queryOptions: any = {
+        include: [
+          {
+            model: WorkspaceMember,
+            as: 'member',
+            where,
+            attributes: ['type']
+          }
+        ],
+        attributes: ['id', 'name', 'email', 'imageUrl'],
+      };
 
-    if (pageNo && pageSize) {
-      queryOptions.limit = pageSize;
-      queryOptions.offset = (pageNo - 1) * pageSize;
-    }
-
-    const members = await User.findAll(queryOptions);
-    const totalCount = await WorkspaceMember.count({ where, distinct: true });
-
-    return success(
-      'Members fetched successfully',
-      members,
-      {
-        total: totalCount,
-        ...(pageNo && pageSize ? { pageNo, pageSize } : {}),
+      if (pageNo && pageSize) {
+        queryOptions.limit = pageSize;
+        queryOptions.offset = (pageNo - 1) * pageSize;
       }
-    );
-  } catch (error) {
-    if (error instanceof NotFoundException || error instanceof ForbiddenException) throw error;
-    throw new InternalServerErrorException(error?.message || 'Something went wrong');
-  }
-}
 
-async updateWorkspacePicture(
+      const members = await User.findAll(queryOptions);
+      const totalCount = await WorkspaceMember.count({ where, distinct: true });
+
+      return success(
+        'Members fetched successfully',
+        members,
+        {
+          total: totalCount,
+          ...(pageNo && pageSize ? { pageNo, pageSize } : {}),
+        }
+      );
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) throw error;
+      throw new InternalServerErrorException(error?.message || 'Something went wrong');
+    }
+  }
+
+  async updateWorkspacePicture(
     id: string,
     req: any,
     imageUrl: string | null,
@@ -749,7 +749,7 @@ async updateWorkspacePicture(
       throw new NotFoundException('Workspace not found');
     }
 
-    if(imageUrl === null){
+    if (imageUrl === null) {
       throw new NotFoundException('image not found');
     }
 
