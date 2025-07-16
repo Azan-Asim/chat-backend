@@ -115,6 +115,7 @@ export class WorkspaceController {
     return this.WorkspaceService.deleteWorkspaceMember(req, workspaceId, memberId);
   }
 
+
   // message Related Routes
 
   @Post('chats/sendMessage')
@@ -135,4 +136,19 @@ export class WorkspaceController {
     return this.WorkspaceService.getWorkspaceChats(req, id, Number(pageNo), Number(pageSize));
   }
 
+
+  // rooms related routes
+
+  @Get('members/:id')
+  @UseGuards(JwtAuthGuard)
+  async getWorkspaceMembers(
+    @Request() req: Request,
+    @Param('id') id: string,
+    @Query('pageNo') pageNo: string,
+    @Query('pageSize') pageSize: string,) {
+    const userId = (req as any).user.id;
+    const workspaceId = id
+    return this.WorkspaceService.getWorkspaceMembers(userId, workspaceId, Number(pageNo), Number(pageSize))
+  }
+  
 }

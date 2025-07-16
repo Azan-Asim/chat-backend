@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Workspace } from './models/workspace.model';
 import { User } from 'src/user/user.model';
@@ -71,7 +71,7 @@ export class WorkspaceService {
 
       const publicWorkspaces = await this.workspaceModel.findAll(queryOptions);
 
-     const allUnreadedCount = await Promise.all(
+      const allUnreadedCount = await Promise.all(
         publicWorkspaces.map(w => this.getWorkspaceUnreadCount(w.id, userId))
       );
 
@@ -96,7 +96,6 @@ export class WorkspaceService {
         'Private Workspaces fetched successfully',
         transformed,
         {
-          aa: allUnreadedCount,
           totals: totalCount,
           ...(pageNo && pageSize
             ? { pageNo, pageSize }
@@ -329,7 +328,6 @@ export class WorkspaceService {
         'Private Workspaces fetched successfully',
         transformed,
         {
-          aa: allUnreadedCount,
           totals: totalCount,
           ...(pageNo && pageSize
             ? { pageNo, pageSize }
@@ -681,5 +679,51 @@ export class WorkspaceService {
       throw error;
     }
   }
+
+
+ async getWorkspaceMembers(userId: string, workspaceId: string, pageNo?: number, pageSize?: number) {
+  console.log(pageNo, pageSize)
+  try {
+    const workspace = await Workspace.findByPk(workspaceId);
+    if (!workspace) throw new NotFoundException('Workspace not found');
+
+    const isMember = await WorkspaceMember.findOne({ where: { workspaceId, userId } });
+    if (!isMember) throw new ForbiddenException('You are not a member of this workspace');
+
+    const where = { workspaceId };
+
+    const queryOptions: any = {
+      include: [
+        {
+          model: WorkspaceMember,
+          as: 'member',
+          where,
+          attributes: ['type']
+        }
+      ],
+      attributes: ['id', 'name', 'email', 'imageUrl'],
+    };
+
+    if (pageNo && pageSize) {
+      queryOptions.limit = pageSize;
+      queryOptions.offset = (pageNo - 1) * pageSize;
+    }
+
+    const members = await User.findAll(queryOptions);
+    const totalCount = await WorkspaceMember.count({ where, distinct: true });
+
+    return success(
+      'Members fetched successfully',
+      members,
+      {
+        total: totalCount,
+        ...(pageNo && pageSize ? { pageNo, pageSize } : {}),
+      }
+    );
+  } catch (error) {
+    if (error instanceof NotFoundException || error instanceof ForbiddenException) throw error;
+    throw new InternalServerErrorException(error?.message || 'Something went wrong');
+  }
+}
 
 }
