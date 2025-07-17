@@ -22,7 +22,7 @@ interface MessageCreationAttrs {
   ReceiverId?: string;
   workspaceId?: string;
   message_text: string;
-  type?: 'dm' | 'workspace';
+  type?: 'text' | 'audio' | 'video' | 'image';
 }
 
 @Table
@@ -34,6 +34,9 @@ export class Message extends Model<Message, MessageCreationAttrs> {
   @Column({ type: 'LONGTEXT' })
   declare message_text: string;
 
+  @Column
+  declare message_file_url: string;
+
   @Default(false)
   @Column
   declare read: boolean;
@@ -43,10 +46,10 @@ export class Message extends Model<Message, MessageCreationAttrs> {
   declare timestamp: Date;
 
   @Column({
-    type: DataType.ENUM('dm', 'workspace'),
-    defaultValue: 'dm',
+    type: DataType.ENUM('text', 'audio', 'video', 'image'),
+    defaultValue: 'text',
   })
-  declare type: 'dm' | 'workspace';
+  declare type: 'text' | 'audio' | 'video' | 'image';
 
   @ForeignKey(() => ChatRoom)
   @Column

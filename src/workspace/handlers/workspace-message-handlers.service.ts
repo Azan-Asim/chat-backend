@@ -41,7 +41,7 @@ export class WorkspaceMessageHandlersService {
           workspaceId,
           SenderId: senderId,
           message_text: content,
-          type: 'workspace'
+          type: 'text'
         });
 
         // Mark sender as having read their own message

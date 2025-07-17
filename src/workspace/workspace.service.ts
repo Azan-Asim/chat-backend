@@ -542,7 +542,7 @@ export class WorkspaceService {
       workspaceId: workspace.id,
       SenderId: senderId,
       message_text: content,
-      type: 'workspace'
+      type: 'text'
     });
 
     return success("Message Created Successfully", message);

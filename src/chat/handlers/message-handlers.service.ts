@@ -54,7 +54,7 @@ export class MessageHandlersService {
           SenderId: senderId,
           ReceiverId: receiverId,
           message_text: content,
-          type: 'dm'
+          type: 'text'
         });
 
         const sender = await User.findByPk(senderId, { attributes: ['id', 'name', 'email', 'imageUrl'] });
