@@ -207,7 +207,6 @@ export class WorkspaceService {
     }
   }
 
-
   async getAllPrivateWorkspaces(pageNo?: number, pageSize?: number) {
     try {
       const where = { type: 'private' };
@@ -696,7 +695,7 @@ export class WorkspaceService {
             attributes: ['id', 'name', 'email', 'imageUrl'],
           }
         ],
-        attributes: ['id', 'type']
+        attributes: ['id', 'type', 'isRemoved']
       };
 
       if (pageNo && pageSize) {
