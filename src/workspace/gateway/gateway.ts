@@ -71,7 +71,7 @@ export class WorkspaceChatGateway implements OnGatewayConnection, OnGatewayDisco
         name: (socket.data as any).user.name,
       });
 
- this.workspaceMessageHandlers.handle(this.server, socket, this.onlineUsers);
+      this.workspaceMessageHandlers.handle(this.server, socket, this.onlineUsers);
       this.workspaceHandlers.handle(this.server, socket, this.onlineUsers);
 
     } catch (err) {

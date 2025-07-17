@@ -11,11 +11,11 @@ import { WorkspaceHandlersService } from './handlers/workspace-handlers.service'
 import { MessageRead } from 'src/message/messageRead.model';
 
 @Module({
-   imports: [
+  imports: [
     SequelizeModule.forFeature([Workspace, WorkspaceMember, User, Message, MessageRead]),
   ],
   controllers: [WorkspaceController],
   providers: [WorkspaceService, WorkspaceMessageHandlersService, WorkspaceHandlersService],
   exports: [WorkspaceService]
 })
-export class WorkspaceModule {}
+export class WorkspaceModule { }

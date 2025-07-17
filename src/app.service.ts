@@ -15,7 +15,7 @@ export class AppService {
             margin: 0;
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            background: linear-gradient(135deg, #5A7CBCFF, #3E71C9FF);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -33,7 +33,7 @@ export class AppService {
           }
           h1 {
             font-size: 2.2rem;
-            color: #2a5298;
+            color: #3271DFFF;
             margin-bottom: 1rem;
           }
           p {
@@ -44,7 +44,7 @@ export class AppService {
           .badge {
             display: inline-block;
             margin-top: 1rem;
-            background: #2a5298;
+            background: #4C76C0FF;
             color: #fff;
             padding: 0.4rem 1rem;
             border-radius: 999px;
