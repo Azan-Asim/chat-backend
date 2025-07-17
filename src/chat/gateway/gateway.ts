@@ -34,7 +34,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
      if (!token) {
     const authHeader = socket.handshake.headers['authorization'];
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.slice(7); // remove 'Bearer '
+      token = authHeader.slice(7);
     }
   }
 

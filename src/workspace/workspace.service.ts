@@ -142,7 +142,7 @@ export class WorkspaceService {
         return failure(`Workspace not found`);
       }
 
-      const workspaceType = workspace.type; // 🟢 read type here
+      const workspaceType = workspace.type;
 
       // If private, require admin to add
       if (workspaceType === 'private') {
@@ -163,6 +163,7 @@ export class WorkspaceService {
         where: {
           workspaceId,
           userId,
+          isRemoved: false,
         },
       });
 
@@ -170,22 +171,42 @@ export class WorkspaceService {
         return failure(`User is already a member of the workspace`);
       }
 
-      const newMember = await this.workspaceMemberModel.create({
-        id: CryptUtil.generateId(),
-        workspaceId,
-        userId,
-        type: 'member',
+      let memberToReturn;
+
+      const softDeletedMember = await this.workspaceMemberModel.findOne({
+        where: {
+          workspaceId,
+          userId,
+          isRemoved: true,
+        },
       });
+
+      console.log('preMem', softDeletedMember)
+
+      if (softDeletedMember) {
+        softDeletedMember.isRemoved = false;
+        await softDeletedMember.save();
+        memberToReturn = softDeletedMember;
+      } else {
+        const newMember = await this.workspaceMemberModel.create({
+          id: CryptUtil.generateId(),
+          workspaceId,
+          userId,
+          type: 'member',
+        });
+        memberToReturn = newMember;
+      }
 
       return success(
         `User added to ${workspaceType} workspace successfully`,
-        newMember
+        memberToReturn,
       );
 
     } catch (error) {
-      throw new InternalServerErrorException(error)
+      throw new InternalServerErrorException(error?.message || error);
     }
   }
+
 
   async getAllPrivateWorkspaces(pageNo?: number, pageSize?: number) {
     try {
@@ -668,15 +689,14 @@ export class WorkspaceService {
       const where = { workspaceId };
 
       const queryOptions: any = {
+        where,
         include: [
           {
-            model: WorkspaceMember,
-            as: 'member',
-            where,
-            attributes: ['type']
+            model: User,
+            attributes: ['id', 'name', 'email', 'imageUrl'],
           }
         ],
-        attributes: ['id', 'name', 'email', 'imageUrl'],
+        attributes: ['id', 'type']
       };
 
       if (pageNo && pageSize) {
@@ -684,7 +704,7 @@ export class WorkspaceService {
         queryOptions.offset = (pageNo - 1) * pageSize;
       }
 
-      const members = await User.findAll(queryOptions);
+      const members = await WorkspaceMember.findAll(queryOptions);
       const totalCount = await WorkspaceMember.count({ where, distinct: true });
 
       return success(
@@ -737,6 +757,7 @@ export class WorkspaceService {
     currentUserId: string,
   ) {
     try {
+      console.log(memberId)
       const member = await this.workspaceMemberModel.findByPk(memberId);
 
       if (!member) {
