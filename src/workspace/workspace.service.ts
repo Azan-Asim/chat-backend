@@ -132,15 +132,31 @@ export class WorkspaceService {
     }
   }
 
-  async addUserInPublicWorkspace(req: any, workspaceId: string, userId: string) {
+  async addUserToWorkspace(req: any, workspaceId: string, userId: string) {
     const reqUserId = req.user.id;
-    try {
-      const privateWorkspace = await this.workspaceModel.findOne({
-        where: { type: 'public', id: workspaceId },
-      });
 
-      if (!privateWorkspace) {
-        return failure('Public workspace not found');
+    try {
+      const workspace = await this.workspaceModel.findByPk(workspaceId);
+
+      if (!workspace) {
+        return failure(`Workspace not found`);
+      }
+
+      const workspaceType = workspace.type; // 🟢 read type here
+
+      // If private, require admin to add
+      if (workspaceType === 'private') {
+        const isAdmin = await this.workspaceMemberModel.findOne({
+          where: {
+            workspaceId,
+            userId: reqUserId,
+            type: 'admin',
+          },
+        });
+
+        if (!isAdmin) {
+          return failure('Only Admin can add members to a private workspace');
+        }
       }
 
       const existingMember = await this.workspaceMemberModel.findOne({
@@ -151,7 +167,7 @@ export class WorkspaceService {
       });
 
       if (existingMember) {
-        return failure('User is already a member of the private workspace');
+        return failure(`User is already a member of the workspace`);
       }
 
       const newMember = await this.workspaceMemberModel.create({
@@ -162,11 +178,12 @@ export class WorkspaceService {
       });
 
       return success(
-        'User added to private workspace successfully',
+        `User added to ${workspaceType} workspace successfully`,
         newMember
       );
+
     } catch (error) {
-      return failure(error.message || 'Failed to add user to private workspace');
+      throw new InternalServerErrorException(error)
     }
   }
 
@@ -340,53 +357,6 @@ export class WorkspaceService {
     }
   }
 
-  async addUserInPrivateWorkspace(req: any, workspaceId: string, userId: string) {
-    const reqUserId = req.user.id;
-    try {
-      const privateWorkspace = await this.workspaceModel.findOne({
-        where: { type: 'private', id: workspaceId },
-      });
-
-      if (!privateWorkspace) {
-        return failure('Private workspace not found');
-      }
-
-      const isAdmin = await this.workspaceMemberModel.findOne({
-        where: { userId: reqUserId, type: "admin" }
-      })
-
-      if (!isAdmin) {
-        return failure('Only Admin can Add Members');
-      }
-
-      const existingMember = await this.workspaceMemberModel.findOne({
-        where: {
-          workspaceId,
-          userId,
-        },
-      });
-
-      console.log(existingMember)
-      if (existingMember) {
-        return failure('User is already a member of the private workspace');
-      }
-
-      const newMember = await this.workspaceMemberModel.create({
-        id: CryptUtil.generateId(),
-        workspaceId,
-        userId,
-        type: 'member',
-      });
-
-      return success(
-        'User added to private workspace successfully',
-        newMember
-      );
-    } catch (error) {
-      return failure(error.message || 'Failed to add user to private workspace');
-    }
-  }
-
   async getWorkspaceById(req: any, id: string) {
     const userId = req?.user?.id ?? null;
 
@@ -419,9 +389,8 @@ export class WorkspaceService {
     let isMember = false;
     const plainWorkspace = singleWorkspace.toJSON();
     if (userId && plainWorkspace.members) {
-      console.log(plainWorkspace.members)
       isMember = plainWorkspace.members.some(
-        (m) => m.userId === userId,
+        (m) => m.userId === userId && m.userId === userId && m.isRemoved === false
       );
     }
 
@@ -541,7 +510,7 @@ export class WorkspaceService {
     }
 
     const isMember = await this.workspaceMemberModel.findOne({
-      where: { workspaceId, userId: senderId },
+      where: { workspaceId, userId: senderId, isRemoved: false },
     });
 
     if (!isMember) {
@@ -568,7 +537,7 @@ export class WorkspaceService {
     const userId = req.user.id;
 
     const isMember = await this.workspaceMemberModel.findOne({
-      where: { workspaceId: id, userId },
+      where: { workspaceId: id, userId, isRemoved: false },
     });
 
     if (!isMember) {
@@ -693,7 +662,7 @@ export class WorkspaceService {
       const workspace = await Workspace.findByPk(workspaceId);
       if (!workspace) throw new NotFoundException('Workspace not found');
 
-      const isMember = await WorkspaceMember.findOne({ where: { workspaceId, userId } });
+      const isMember = await WorkspaceMember.findOne({ where: { workspaceId, userId, isRemoved: false } });
       if (!isMember) throw new ForbiddenException('You are not a member of this workspace');
 
       const where = { workspaceId };
@@ -768,7 +737,55 @@ export class WorkspaceService {
     currentUserId: string,
   ) {
     try {
-       const member = await this.workspaceMemberModel.findByPk(memberId);
+      const member = await this.workspaceMemberModel.findByPk(memberId);
+
+      if (!member) {
+        throw new NotFoundException('Workspace member not found');
+      }
+
+      const isAdmin = await this.workspaceMemberModel.findOne({
+        where: {
+          workspaceId: member.workspaceId,
+          userId: currentUserId,
+          type: 'admin',
+        },
+      });
+
+      if (!isAdmin) {
+        throw new ForbiddenException('You are not an admin of this workspace');
+      }
+
+      if (member.type === 'admin') {
+        const adminCount = await this.workspaceMemberModel.count({
+          where: {
+            workspaceId: member.workspaceId,
+            type: 'admin',
+          },
+        });
+
+        if (adminCount <= 1) {
+          throw new ForbiddenException(
+            'Cannot remove the last admin from the workspace',
+          );
+        }
+
+        member.type = 'member';
+      } else {
+        member.type = 'admin';
+      }
+
+      await member.save();
+
+      return success("Member Type Changed Successfully", member)
+    } catch (error) {
+      throw new InternalServerErrorException(error)
+    }
+  }
+  async deleteMemberById(
+    memberId: string,
+    currentUserId: string,
+  ) {
+    const member = await this.workspaceMemberModel.findByPk(memberId);
 
     if (!member) {
       throw new NotFoundException('Workspace member not found');
@@ -786,31 +803,13 @@ export class WorkspaceService {
       throw new ForbiddenException('You are not an admin of this workspace');
     }
 
-    if (member.type === 'admin') {
-      const adminCount = await this.workspaceMemberModel.count({
-        where: {
-          workspaceId: member.workspaceId,
-          type: 'admin',
-        },
-      });
-
-      if (adminCount <= 1) {
-        throw new ForbiddenException(
-          'Cannot remove the last admin from the workspace',
-        );
-      }
-
-      member.type = 'member';
-    } else {
-      member.type = 'admin';
-    }
+    member.isRemoved = true;
 
     await member.save();
 
-    return success("Member Type Changed Successfully", member)
-    } catch (error) {
-      throw new InternalServerErrorException(error)
-    }
+    return {
+      message: 'Member deleted successfully',
+      data: member,
+    };
   }
-
 }

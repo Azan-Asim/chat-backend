@@ -35,14 +35,14 @@ export class WorkspaceController {
     return this.WorkspaceService.createPublicWorkspace(req, name)
   }
 
-  @Post('/public/addUser')
+  @Post('/addUser')
   @UseGuards(JwtAuthGuard)
-  async addUserInPublicWorkspace(
+  async addUserToWorkspace(
     @Request() req: any,
     @Body() body: AddUserToPublicWorkspaceDto,
   ) {
     const { workspaceId, userId } = body;
-    return this.WorkspaceService.addUserInPublicWorkspace(req, workspaceId, userId);
+    return this.WorkspaceService.addUserToWorkspace(req, workspaceId, userId);
   }
 
 
@@ -72,16 +72,6 @@ export class WorkspaceController {
     @Body('name') name: string,
   ) {
     return this.WorkspaceService.createPrivateWorkspace(req, name)
-  }
-
-  @Post('private/addUser')
-  @UseGuards(JwtAuthGuard)
-  async addUserInPrivateWorkspace(
-    @Request() req: any,
-    @Body() body: AddUserToPrivateWorkspaceDto,
-  ) {
-    const { workspaceId, userId } = body;
-    return this.WorkspaceService.addUserInPrivateWorkspace(req, workspaceId, userId)
   }
 
   @Get(':id')
@@ -205,13 +195,25 @@ export class WorkspaceController {
     }
   }
 
-  @Post('/toggleupdateMembertype/:id')
+  @Patch('/updateMembertype/:id')
   @UseGuards(JwtAuthGuard)
   async updateMembertype(
     @Param('id') memberId: string,
     @Req() req: any,
   ) {
     return this.WorkspaceService.toggleUpdateMemberType(
+      memberId,
+      req.user.id,
+    );
+  }
+
+  @Delete('/member/:id')
+  @UseGuards(JwtAuthGuard)
+  async deleteMemberById(
+    @Param('id') memberId: string,
+    @Req() req: any,
+  ) {
+    return this.WorkspaceService.deleteMemberById(
       memberId,
       req.user.id,
     );
