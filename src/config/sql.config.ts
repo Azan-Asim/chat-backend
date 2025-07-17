@@ -1,4 +1,4 @@
-// src/database/sequelize.config.ts
+// src/config/sql.config.ts
 import { SequelizeModuleOptions } from '@nestjs/sequelize';
 
 export const mysqlConfig: SequelizeModuleOptions = {
