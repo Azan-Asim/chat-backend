@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Request, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Request, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { WorkspaceService } from './workspace.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 // import { OptionalJwtAuthGuard } from 'src/auth/OptionalJwtAuthGuard';
@@ -10,7 +10,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { CryptUtil } from 'src/utils/crypt.util';
 import { diskStorage } from 'multer';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { multerOptions } from 'src/config/storage.config';
 
 @Controller('workspace')
 export class WorkspaceController {
@@ -114,11 +115,62 @@ export class WorkspaceController {
   // message Related Routes
 
   @Post('chats/sendMessage')
+  @UseInterceptors(FilesInterceptor('files', 10, multerOptions))
   @UseGuards(JwtAuthGuard)
-  async sendMessage(@Request() req: Request, @Body() body: SendMessageDto) {
-    const senderId = (req as any).user.id; // or use a custom type (better)
-    return this.WorkspaceService.sendMessage(senderId, body.workspaceId, body.content);
+  async sendMessage(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Request() req: Request,
+    @Body() body: SendMessageDto
+  ) {
+    const senderId = (req as any).user.id;
+
+    const results: any[] = [];
+
+    if (files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        let type: 'image' | 'audio' | 'video';
+
+        if (file.mimetype.startsWith('image/')) {
+          type = 'image';
+        } else if (file.mimetype.startsWith('audio/')) {
+          type = 'audio';
+        } else if (file.mimetype.startsWith('video/')) {
+          type = 'video';
+        } else {
+          continue;
+        }
+
+        const fileUrl = `/uploads/message/${type}/${file.filename}`;
+
+        const result = await this.WorkspaceService.sendMessage(
+          senderId,
+          body.workspaceId,
+          body.content || '',
+          type,
+          fileUrl
+        );
+        results.push(result?.data,);
+      }
+
+      return  {
+          success: true,
+          message: `${results.length} sent successfully`,
+          data: results,
+        }
+    }
+
+    if ((!files || files.length === 0) && body.content?.trim()) {
+      return this.WorkspaceService.sendMessage(
+        senderId,
+        body.workspaceId,
+        body.content
+      );
+    }
+
+    throw new BadRequestException('No content or valid files provided.');
   }
+
 
   @Get('chats/:id')
   @UseGuards(JwtAuthGuard)

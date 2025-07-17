@@ -519,7 +519,7 @@ export class WorkspaceService {
 
   // chat related methods
 
-  async sendMessage(senderId: string, workspaceId: string, content: string) {
+  async sendMessage(senderId: string, workspaceId: string, content: string, type?: 'text' | 'audio' | 'video' | 'image', fileUrl?: string) {
 
     const workspace = await this.workspaceModel.findOne({
       where: { id: workspaceId },
@@ -537,14 +537,19 @@ export class WorkspaceService {
       throw new ForbiddenException('You are not a member of this workspace');
     }
 
-    const message = await this.messageModel.create({
+    const data: any = {
       id: `workspace-msg-${Date.now()}-${CryptUtil.generateId()}`,
       workspaceId: workspace.id,
       SenderId: senderId,
       message_text: content,
-      type: 'text'
-    });
+      type: type ?? 'text',
+    };
 
+    if (fileUrl) {
+      data.message_file_url = fileUrl;
+    }
+
+    const message = await this.messageModel.create(data);
     return success("Message Created Successfully", message);
   }
 
