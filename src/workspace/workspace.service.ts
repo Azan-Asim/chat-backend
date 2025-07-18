@@ -9,6 +9,7 @@ import { CryptUtil } from 'src/utils/crypt.util';
 import { Message } from 'src/message/message.model';
 import { MessageRead } from 'src/message/messageRead.model';
 import { Sequelize } from 'sequelize-typescript';
+import { WorkspaceChatGateway } from './gateway/gateway';
 
 @Injectable()
 export class WorkspaceService {
@@ -491,7 +492,6 @@ export class WorkspaceService {
     return success('Workspace deleted successfully', workspace);
   }
 
-
   async deleteWorkspaceMember(req: any, workspaceId: string, memberId: string) {
     const userId = req.user.id
     const member = await this.workspaceMemberModel.findOne({
@@ -518,6 +518,43 @@ export class WorkspaceService {
   }
 
   // chat related methods
+
+  async uploadMessageFile(
+    senderId: string,
+    workspaceId: string,
+    type: 'audio' | 'video' | 'image',
+    fileUrl?: string
+  ) {
+    try {
+
+      console.log('service', fileUrl)
+      const isMember = await this.workspaceMemberModel.findOne({
+        where: { userId: senderId, isRemoved: false },
+      });
+
+      if (!isMember) {
+        throw new ForbiddenException('You are not a member of this workspace');
+      }
+
+      if (!fileUrl) {
+        throw new BadRequestException('No file URL provided');
+      }
+
+      return success('File Uploaded Successfully', {
+        fileUrl,
+        senderId,
+        workspaceId,
+        type,
+      });
+    } catch (err) {
+      console.error(err);
+      throw new InternalServerErrorException(
+        err.message || 'Failed to upload message file'
+      );
+    }
+  }
+
+
 
   async sendMessage(senderId: string, workspaceId: string, content: string, type?: 'text' | 'audio' | 'video' | 'image', fileUrl?: string) {
 

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Request, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, InternalServerErrorException, Param, Patch, Post, Query, Req, Request, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { WorkspaceService } from './workspace.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 // import { OptionalJwtAuthGuard } from 'src/auth/OptionalJwtAuthGuard';
@@ -114,6 +114,64 @@ export class WorkspaceController {
 
   // message Related Routes
 
+  @Post('chats/uploadMessageFile/:id')
+  @UseInterceptors(FilesInterceptor('files', 10, multerOptions))
+  @UseGuards(JwtAuthGuard)
+  async uploadMessageFile(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Request() req: Request,
+    @Param('id') workspaceId: string,
+
+  ) {
+    try {
+      const senderId = (req as any).user.id;
+      if (!files || files.length === 0) {
+        throw new BadRequestException('No files were uploaded.');
+      }
+      console.log('controller', files)
+
+      const results: any[] = [];
+
+      if (files && files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          let type: 'image' | 'audio' | 'video';
+
+          if (file.mimetype.startsWith('image/')) {
+            type = 'image';
+          } else if (file.mimetype.startsWith('audio/')) {
+            type = 'audio';
+          } else if (file.mimetype.startsWith('video/')) {
+            type = 'video';
+          } else {
+            continue;
+          }
+
+          const fileUrl = `/uploads/message/${type}/${file.filename}`;
+
+          console.log(fileUrl)
+
+          const result = await this.WorkspaceService.uploadMessageFile(
+            senderId,
+            workspaceId,
+            type,
+            fileUrl
+          );
+          results.push(result?.data,);
+        }
+
+        return {
+          success: true,
+          message: `${results.length} sent successfully`,
+          data: results,
+        }
+      }
+    } catch (error) {
+      throw new InternalServerErrorException(error)
+    }
+  }
+
+
   @Post('chats/sendMessage')
   @UseInterceptors(FilesInterceptor('files', 10, multerOptions))
   @UseGuards(JwtAuthGuard)
@@ -153,11 +211,11 @@ export class WorkspaceController {
         results.push(result?.data,);
       }
 
-      return  {
-          success: true,
-          message: `${results.length} sent successfully`,
-          data: results,
-        }
+      return {
+        success: true,
+        message: `${results.length} sent successfully`,
+        data: results,
+      }
     }
 
     if ((!files || files.length === 0) && body.content?.trim()) {
@@ -170,7 +228,6 @@ export class WorkspaceController {
 
     throw new BadRequestException('No content or valid files provided.');
   }
-
 
   @Get('chats/:id')
   @UseGuards(JwtAuthGuard)

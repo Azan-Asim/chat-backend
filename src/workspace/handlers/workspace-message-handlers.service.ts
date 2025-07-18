@@ -21,7 +21,7 @@ export class WorkspaceMessageHandlersService {
   }
 
   private handleSendMessage(server: Server, socket: Socket, onlineUsers: Map<string, Set<string>>) {
-    socket.on('sendMessage', async ({ workspaceId, content }) => {
+    socket.on('sendMessage', async ({ workspaceId, content, message_file_url, type }) => {
       try {
         const senderId = socket.data.user.id;
 
@@ -35,14 +35,17 @@ export class WorkspaceMessageHandlersService {
           return socket.emit('sendMessage_Error', { message: "You are not a member of this workspace" });
         }
 
-        // Create message
-        const message = await Message.create({
+        const msg = {
           id: `workspace-msg-${Date.now()}-${CryptUtil.generateId()}`,
           workspaceId,
           SenderId: senderId,
-          message_text: content,
-          type: 'text'
-        });
+          message_text: content || '',
+          type: type || 'text',
+          message_file_url: message_file_url || null,
+        };
+
+        // Create message
+        const message = await Message.create(msg);
 
         // Mark sender as having read their own message
         const messageRead = await MessageRead.create({

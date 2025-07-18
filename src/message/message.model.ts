@@ -22,6 +22,7 @@ interface MessageCreationAttrs {
   ReceiverId?: string;
   workspaceId?: string;
   message_text: string;
+  message_file_url?: string;
   type?: 'text' | 'audio' | 'video' | 'image';
 }
 
