@@ -164,12 +164,12 @@ export class ChatService {
         message_text: message.message_text,
         message_file_url: message.message_file_url,
         timestamp: message.timestamp,
-        sender: {
+        Sender: {
           id: message.Sender.id,
           name: message.Sender.name,
           imageUrl: message.Sender.imageUrl,
         },
-        receiver: {
+        Receiver: {
           id: message.Receiver.id,
           name: message.Receiver.name,
           imageUrl: message.Receiver.imageUrl,

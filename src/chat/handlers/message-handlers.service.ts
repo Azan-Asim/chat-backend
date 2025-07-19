@@ -17,10 +17,10 @@ export class MessageHandlersService {
   }
 
   private handleSendMessage(server: Server, socket: Socket) {
-    socket.on('sendMessage', async ({ receiverId, content, message_file_url, type }) => {
+    socket.on('sendMessage', async ({ receiverId, message_text, message_file_url, type }) => {
       try {
         const senderId = socket.data.user.id;
-        console.log({ senderId, receiverId, content });
+        console.log({ senderId, receiverId, message_text });
 
         if (senderId === receiverId) {
           return socket.emit('error', { message: 'You cannot send a message to yourself.' });
@@ -58,7 +58,7 @@ export class MessageHandlersService {
           RoomId: room.id,
           SenderId: senderId,
           ReceiverId: receiverId,
-          message_text: content || '',
+          message_text: message_text || '',
           type: type || 'text',
           message_file_url: message_file_url || null,
         }
@@ -74,8 +74,8 @@ export class MessageHandlersService {
             message_text: message.message_text,
             type: message.type,
             message_file_url: message_file_url,
-            sender,
-            receiver,
+            Sender: sender,
+            Receiver: receiver,
             timestamp: message.createdAt,
             isRead: false,
           },
