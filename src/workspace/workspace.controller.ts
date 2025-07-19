@@ -128,8 +128,7 @@ export class WorkspaceController {
       if (!files || files.length === 0) {
         throw new BadRequestException('No files were uploaded.');
       }
-      console.log('controller', files)
-
+      
       const results: any[] = [];
 
       if (files && files.length > 0) {
@@ -148,9 +147,7 @@ export class WorkspaceController {
           }
 
           const fileUrl = `/uploads/message/${type}/${file.filename}`;
-
-          console.log(fileUrl)
-
+          
           const result = await this.WorkspaceService.uploadMessageFile(
             senderId,
             workspaceId,

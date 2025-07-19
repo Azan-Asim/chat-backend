@@ -6,14 +6,14 @@
 
 - [Node.js](https://nodejs.org/) **v22.17.0**
 - [pnpm](https://pnpm.io/) package manager
-- MySQL database server
+- MySQL database server / phpMyAdmin:Xampp
 
 ### Setup
 
 1. **Clone the repository:**
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/devsinntechnologies/chat-backend.git
 cd <your-project-directory>
 ```
 
@@ -44,7 +44,7 @@ JWT_SECRET=your_jwt_secret_here
 To start the development server:
 
 ```bash
-pnpm run dev
+pnpm start:dev
 ```
 
 ---

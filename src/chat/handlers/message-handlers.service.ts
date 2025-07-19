@@ -20,7 +20,6 @@ export class MessageHandlersService {
     socket.on('sendMessage', async ({ receiverId, message_text, message_file_url, type }) => {
       try {
         const senderId = socket.data.user.id;
-        console.log({ senderId, receiverId, message_text });
 
         if (senderId === receiverId) {
           return socket.emit('error', { message: 'You cannot send a message to yourself.' });
@@ -100,7 +99,7 @@ export class MessageHandlersService {
             receiverSocket.emit('messageRead', { roomId: room.id, messageId: message.id });
           }
         } else {
-          console.log(`Receiver ${receiverId} is not connected.`);
+          socket.emit('sendMessage_Error', { message: `Receiver ${receiverId} is not connected.` });
         }
 
         const senderUnreadCount = await Message.count({
@@ -158,9 +157,6 @@ export class MessageHandlersService {
       if (!users.includes(socket.data.user.id)) {
         users.push(socket.data.user.id);
       }
-
-      // console.log(`User ${socket.data.user.id} joined room ${roomId}`);
-      // console.log(this.activeRooms);
     });
   }
 

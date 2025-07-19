@@ -68,7 +68,6 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@Request() req: any) {
-    console.log(req.user)
     return this.userService.getUserById(req.user.id);
   }
 

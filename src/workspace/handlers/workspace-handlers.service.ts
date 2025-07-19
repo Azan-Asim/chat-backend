@@ -107,8 +107,6 @@ export class WorkspaceHandlersService {
   private handleReadMessage(server: Server, socket: Socket) {
     const userId = socket.data.user.id
     socket.on('readMessage', async ({ workspaceId, messageId }) => {
-      console.log("socket readMessage")
-      console.log({ workspaceId, messageId, userId })
       if (!workspaceId || !messageId || !userId) return;
 
       const now = new Date();
@@ -116,7 +114,7 @@ export class WorkspaceHandlersService {
       const isRead = MessageRead.findOne({
         where: { messageId }
       })
-      console.log('already read')
+      
       await MessageRead.upsert({
         id: `${messageId}-${userId}`,
         messageId,

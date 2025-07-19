@@ -65,11 +65,6 @@ export class WorkspaceChatGateway implements OnGatewayConnection, OnGatewayDisco
       this.onlineUsers.get(userId)!.add(socket.id);
 
       console.log(`[ONLINE] User ${userId} now has ${this.onlineUsers.get(userId)!.size} sockets`);
-      console.log('User authenticated at workspace:', {
-        id: (socket.data as any).user.id,
-        email: (socket.data as any).user.email,
-        name: (socket.data as any).user.name,
-      });
 
       this.workspaceMessageHandlers.handle(this.server, socket, this.onlineUsers);
       this.workspaceHandlers.handle(this.server, socket, this.onlineUsers);

@@ -182,8 +182,6 @@ export class WorkspaceService {
         },
       });
 
-      console.log('preMem', softDeletedMember)
-
       if (softDeletedMember) {
         softDeletedMember.isRemoved = false;
         await softDeletedMember.save();
@@ -480,7 +478,7 @@ export class WorkspaceService {
     const isAdmin = plainWorkspace.members.some(
       (m) => m.userId === userId && m.role === 'admin',
     );
-    console.log(plainWorkspace)
+
     if (!isCreator && !isAdmin) {
       throw new ForbiddenException(
         'Only the creator or an admin can delete this workspace',
@@ -526,8 +524,6 @@ export class WorkspaceService {
     fileUrl?: string
   ) {
     try {
-
-      console.log('service', fileUrl)
       const isMember = await this.workspaceMemberModel.findOne({
         where: { userId: senderId, isRemoved: false },
       });
@@ -688,7 +684,6 @@ export class WorkspaceService {
   }
 
   async getWorkspaceUnreadCount(workspaceId: string, userId: string) {
-    // console.log(workspaceId, userId)
     try {
       const unreadMessages = await this.messageModel.findAll({
         where: { workspaceId },
@@ -717,7 +712,6 @@ export class WorkspaceService {
 
 
   async getWorkspaceMembers(userId: string, workspaceId: string, pageNo?: number, pageSize?: number) {
-    console.log(pageNo, pageSize)
     try {
       const workspace = await Workspace.findByPk(workspaceId);
       if (!workspace) throw new NotFoundException('Workspace not found');
@@ -796,7 +790,6 @@ export class WorkspaceService {
     currentUserId: string,
   ) {
     try {
-      console.log(memberId)
       const member = await this.workspaceMemberModel.findByPk(memberId);
 
       if (!member) {

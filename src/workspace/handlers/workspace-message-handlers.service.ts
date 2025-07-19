@@ -170,9 +170,6 @@ export class WorkspaceMessageHandlersService {
       } else {
         this.activeRooms.delete(workspaceId);
       }
-
-      console.log(`User ${userId} left workspace ${workspaceId}`);
-      console.log(`Current users in workspace ${workspaceId}:`, updatedUsers);
     });
   }
 

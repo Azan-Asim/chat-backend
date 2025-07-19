@@ -27,7 +27,6 @@ export class RoomHandlersService {
         }
 
         socket.join(roomId);
-        console.log(`User ${userId} joined room ${roomId}`);
 
         const unreadMessages = await Message.count({
           where: { RoomId: roomId, ReceiverId: userId, read: false },
