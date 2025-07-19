@@ -36,6 +36,8 @@ export class ChatService {
             model: Message,
             attributes: [
               'message_text',
+              'type',
+              'message_file_url',
               'SenderId',
               'ReceiverId',
               'timestamp',
@@ -87,40 +89,54 @@ export class ChatService {
   }
 
 
-  async getAllChatsInChatRoom(userId: string, roomId: string, pageNo: number, pageSize: number) {
-    // console.log(userId, roomId, pageNo, pageSize)
+  async getAllChatsInChatRoom(userId: string, roomId: string, pageNo?: number, pageSize?: number) {
     try {
       const [user1, user2] = roomId.split('-');
-      const receiverId = user1 === userId ? user2 : user1;
+      if (!user1 || !user2) {
+        throw new BadRequestException('Invalid roomId format.');
+      }
 
-      if (!receiverId) throw new Error('Unable to determine the receiver ID.');
+      const receiverId = user1 === userId ? user2 : user1;
 
       const receiver = await this.userModel.findByPk(receiverId, {
         attributes: ['id', 'name', 'email', 'imageUrl'],
       });
+      if (!receiver) {
+        throw new NotFoundException('Receiver not found.');
+      }
 
-      if (!receiver) throw new Error('Receiver not found.');
-
-      const offset = (pageNo - 1) * pageSize;
-
-      const messages = await this.messageModel.findAll({
+      const queryOptions: any = {
         where: { RoomId: roomId },
-        offset: Number(offset),
-        limit: Number(pageSize),
         order: [['timestamp', 'DESC']],
         include: [
-          { model: User, as: 'Sender', attributes: ['id', 'name', 'email', 'imageUrl'] },
-          { model: User, as: 'Receiver', attributes: ['id', 'name', 'email', 'imageUrl'] },
+          {
+            model: User,
+            as: 'Sender',
+            attributes: ['id', 'name', 'email', 'imageUrl'],
+          },
+          {
+            model: User,
+            as: 'Receiver',
+            attributes: ['id', 'name', 'email', 'imageUrl'],
+          },
         ],
-      });
+      };
 
-      const totalmessages = await this.messageModel.count({
+      if (pageNo && pageSize) {
+        queryOptions.limit = pageSize;
+        queryOptions.offset = (pageNo - 1) * pageSize;
+      }
+
+      const messages = await this.messageModel.findAll(queryOptions);
+      const totalCount = await this.messageModel.count({
         where: { RoomId: roomId },
       });
 
       const formattedMessages = messages.map((message) => ({
         id: message.id,
-        content: message.message_text,
+        type: message.type,
+        message_text: message.message_text,
+        message_file_url: message.message_file_url,
         timestamp: message.timestamp,
         sender: {
           id: message.Sender.id,
@@ -136,15 +152,23 @@ export class ChatService {
       }));
 
       const data = {
-        totalmessages,
         receiver,
         messages: formattedMessages,
-      }
-      return success(`All Chats with ${receiver.name} retrived from pageNo ${pageNo}`, data)
-    } catch (error) {
+      };
 
+      return success(
+        `Chats with ${receiver.name} fetched successfully`,
+        data,
+        {
+          totals: totalCount,
+          ...(pageNo && pageSize ? { pageNo, pageSize } : {}),
+        }
+      );
+    } catch (error) {
+      throw new InternalServerErrorException(error);
     }
   }
+
 
   async getUserMessagesUnreadCount(userId: string) {
     try {
@@ -166,50 +190,67 @@ export class ChatService {
     }
   }
 
-  async sendMessage(senderId: string, receiverId: string, content: string) {
-    if (senderId === receiverId) {
-      throw new Error('You cannot send a message to yourself.');
-    }
+  async sendMessage(senderId: string, receiverId: string, content: string, type?: 'text' | 'audio' | 'video' | 'image', fileUrl?: string) {
+    try {
+      if (senderId === receiverId) {
+        throw new Error('You cannot send a message to yourself.');
+      }
 
-    let room = await this.chatRoomModel.findOne({
-      where: {
-        [Op.or]: [
-          { UserId1: senderId, UserId2: receiverId },
-          { UserId1: receiverId, UserId2: senderId },
+      const receiver = await User.findByPk(receiverId, { attributes: ['id', 'name', 'email', 'imageUrl'] });
+
+      if (!receiver) {
+        throw new NotFoundException("Receiver Not Found")
+      }
+
+      let room = await this.chatRoomModel.findOne({
+        where: {
+          [Op.or]: [
+            { UserId1: senderId, UserId2: receiverId },
+            { UserId1: receiverId, UserId2: senderId },
+          ],
+        },
+        include: [
+          {
+            model: User,
+            as: 'user1',
+            attributes: ['id', 'name', 'email', 'imageUrl'],
+          },
+          {
+            model: User,
+            as: 'user2',
+            attributes: ['id', 'name', 'email', 'imageUrl'],
+          },
         ],
-      },
-      include: [
-        {
-          model: User,
-          as: 'user1',
-          attributes: ['id', 'name', 'email', 'imageUrl'],
-        },
-        {
-          model: User,
-          as: 'user2',
-          attributes: ['id', 'name', 'email', 'imageUrl'],
-        },
-      ],
-    });
-
-    if (!room) {
-      room = await this.chatRoomModel.create({
-        id: `${senderId}-${receiverId}`,
-        UserId1: senderId,
-        UserId2: receiverId,
       });
+
+      if (!room) {
+        room = await this.chatRoomModel.create({
+          id: `${senderId}-${receiverId}`,
+          UserId1: senderId,
+          UserId2: receiverId,
+        });
+      }
+
+      const msg: any = {
+        id: `msg-${Date.now()}`,
+        RoomId: room.id,
+        SenderId: senderId,
+        ReceiverId: receiverId,
+        message_text: content,
+        type: type ?? 'text',
+      };
+
+      if (fileUrl) {
+        msg.message_file_url = fileUrl;
+      }
+
+      const message = await this.messageModel.create(msg);
+
+      return success("Message Created Successfully", message);
+
+    } catch (error) {
+      throw new InternalServerErrorException(error)
     }
-
-    const message = await this.messageModel.create({
-      id: `msg-${Date.now()}`,
-      RoomId: room.id,
-      SenderId: senderId,
-      ReceiverId: receiverId,
-      message_text: content,
-      type: 'text'
-    });
-
-    return message;
   }
 
   async uploadMessageFile(

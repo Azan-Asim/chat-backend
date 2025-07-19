@@ -48,14 +48,64 @@ export class ChatController {
     return this.ChatService.getUserChatRooms(req.user.id);
   }
 
- @Post('send_message')
-  @UseGuards(JwtAuthGuard)
-  async sendMessage(@Request() req: Request, @Body() body: SendMessageDto) {
-    const senderId = (req as any).user.id; // or use a custom type (better)
-    return this.ChatService.sendMessage(senderId, body.receiverId, body.content);
-  }
+  @Post('/sendMessage')
+    @UseInterceptors(FilesInterceptor('files', 10, multerOptions))
+    @UseGuards(JwtAuthGuard)
+    async sendMessage(
+      @UploadedFiles() files: Express.Multer.File[],
+      @Request() req: Request,
+      @Body() body: SendMessageDto
+    ) {
+      const senderId = (req as any).user.id;
+  
+      const results: any[] = [];
+  
+      if (files && files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          let type: 'image' | 'audio' | 'video';
+  
+          if (file.mimetype.startsWith('image/')) {
+            type = 'image';
+          } else if (file.mimetype.startsWith('audio/')) {
+            type = 'audio';
+          } else if (file.mimetype.startsWith('video/')) {
+            type = 'video';
+          } else {
+            continue;
+          }
+  
+          const fileUrl = `/uploads/message/${type}/${file.filename}`;
+  
+          const result = await this.ChatService.sendMessage(
+            senderId,
+            body.receiverId,
+            body.content || '',
+            type,
+            fileUrl
+          );
+          results.push(result?.data,);
+        }
+  
+        return {
+          success: true,
+          message: `${results.length} sent successfully`,
+          data: results,
+        }
+      }
+  
+      if ((!files || files.length === 0) && body.content?.trim()) {
+        return this.ChatService.sendMessage(
+          senderId,
+          body.receiverId,
+          body.content
+        );
+      }
+  
+      throw new BadRequestException('No content or valid files provided.');
+    }
 
-@Post('/uploadMessageFile')
+  @Post('/uploadMessageFile')
   @UseInterceptors(FilesInterceptor('files', 10, multerOptions))
   @UseGuards(JwtAuthGuard)
   async uploadMessageFile(
@@ -70,7 +120,7 @@ export class ChatController {
       if (!files || files.length === 0) {
         throw new BadRequestException('No files were uploaded.');
       }
-      
+
       const results: any[] = [];
 
       if (files && files.length > 0) {
@@ -109,7 +159,7 @@ export class ChatController {
     } catch (error) {
       throw new InternalServerErrorException(error)
     }
-  }  
+  }
 
 
   @Get('getUnreadCount')

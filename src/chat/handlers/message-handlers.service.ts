@@ -17,13 +17,18 @@ export class MessageHandlersService {
   }
 
   private handleSendMessage(server: Server, socket: Socket) {
-    socket.on('sendMessage', async ({ receiverId, content }) => {
+    socket.on('sendMessage', async ({ receiverId, content, message_file_url, type }) => {
       try {
         const senderId = socket.data.user.id;
         console.log({ senderId, receiverId, content });
 
         if (senderId === receiverId) {
           return socket.emit('error', { message: 'You cannot send a message to yourself.' });
+        }
+
+        const receiver = await User.findByPk(receiverId, { attributes: ['id', 'name', 'email', 'imageUrl'] });
+        if (!receiver) {
+          return socket.emit('sendMessage_Error', { message: "Receiver Not Found" });
         }
 
         let room = await ChatRoom.findOne({
@@ -48,23 +53,27 @@ export class MessageHandlersService {
           });
         }
 
-        const message = await Message.create({
+        const msg = {
           id: `msg-${Date.now()}`,
           RoomId: room.id,
           SenderId: senderId,
           ReceiverId: receiverId,
-          message_text: content,
-          type: 'text'
-        });
+          message_text: content || '',
+          type: type || 'text',
+          message_file_url: message_file_url || null,
+        }
+
+        const message = await Message.create(msg);
 
         const sender = await User.findByPk(senderId, { attributes: ['id', 'name', 'email', 'imageUrl'] });
-        const receiver = await User.findByPk(receiverId, { attributes: ['id', 'name', 'email', 'imageUrl'] });
 
         const messagePayload = {
           roomId: room.id,
           message: {
             id: message.id,
-            content: message.message_text,
+            message_text: message.message_text,
+            type: message.type,
+            message_file_url: message_file_url,
             sender,
             receiver,
             timestamp: message.createdAt,
@@ -118,7 +127,9 @@ export class MessageHandlersService {
           lastMessage: {
             senderId,
             receiverId,
-            content: message.message_text,
+            type: message.type,
+            message_text: message.message_text,
+            message_file_url: message_file_url,
             timestamp: message.createdAt,
             isRead: messagePayload.message.isRead,
           },
