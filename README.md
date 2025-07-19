@@ -49,7 +49,8 @@ pnpm start:dev
 
 ---
 
-### Author
+## ✍️ Author
 
 **Muhammad Arslan**  
-📧 marslanmustafa391@gmail.com
+📧 [marslanmustafa391@gmail.com](mailto:marslanmustafa391@gmail.com)  
+🌐 [https://marslanmustafa.com](https://marslanmustafa.com)
