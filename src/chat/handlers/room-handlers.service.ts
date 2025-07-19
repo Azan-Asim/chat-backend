@@ -49,10 +49,13 @@ export class RoomHandlersService {
           receiverId: user2Id,
           lastMessage: lastMessage
             ? {
-                content: lastMessage.message_text,
-                // image: lastMessage.image_url || null,
-                timestamp: lastMessage.createdAt,
-              }
+              senderId: lastMessage.SenderId,
+              receiverId: lastMessage.ReceiverId,
+              message_text: lastMessage.message_text,
+              message_file_url: lastMessage.message_file_url,
+              type: lastMessage.type,
+              timestamp: lastMessage.timestamp,
+            }
             : null,
           unreadMessages: userId === user1Id ? 0 : undefined,
         };
@@ -61,12 +64,13 @@ export class RoomHandlersService {
           roomId,
           lastMessage: lastMessage
             ? {
-                senderId: user1Id,
-                receiverId: user2Id,
-                content: lastMessage.message_text,
-                // image: lastMessage.image_url || null,
-                timestamp: lastMessage.createdAt,
-              }
+              senderId: lastMessage.SenderId,
+              receiverId: lastMessage.ReceiverId,
+              message_text: lastMessage.message_text,
+              message_file_url: lastMessage.message_file_url,
+              type: lastMessage.type,
+              timestamp: lastMessage.timestamp,
+            }
             : null,
           unreadMessages: userId === user2Id ? 0 : undefined,
         };

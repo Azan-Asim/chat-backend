@@ -91,7 +91,9 @@ export class ChatService {
             ? {
               senderId: lastMessage.SenderId,
               receiverId: lastMessage.ReceiverId,
-              content: lastMessage.message_text,
+              message_text: lastMessage.message_text,
+              message_file_url: lastMessage.message_file_url,
+              type: lastMessage.type,
               timestamp: lastMessage.timestamp,
             }
             : null,

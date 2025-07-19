@@ -115,7 +115,9 @@ export class MessageHandlersService {
           lastMessage: {
             senderId,
             receiverId,
-            content: message.message_text,
+            type: message.type,
+            message_text: message.message_text,
+            message_file_url: message_file_url,
             timestamp: message.createdAt,
             isRead: messagePayload.message.isRead,
           },
