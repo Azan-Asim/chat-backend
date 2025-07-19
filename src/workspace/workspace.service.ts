@@ -554,8 +554,6 @@ export class WorkspaceService {
     }
   }
 
-
-
   async sendMessage(senderId: string, workspaceId: string, content: string, type?: 'text' | 'audio' | 'video' | 'image', fileUrl?: string) {
 
     const workspace = await this.workspaceModel.findOne({

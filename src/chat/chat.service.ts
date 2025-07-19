@@ -1,5 +1,5 @@
 // src/chat/chat.service.ts
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { ChatRoom } from '../chatroom/chatroom.model';
 import { Message } from '../message/message.model';
@@ -211,4 +211,66 @@ export class ChatService {
 
     return message;
   }
+
+  async uploadMessageFile(
+    senderId: string,
+    receiverId: string,
+    type: 'audio' | 'video' | 'image',
+    fileUrl?: string
+  ) {
+    if (!receiverId) {
+      throw new BadRequestException('Receiver ID is required.');
+    }
+
+    if (senderId === receiverId) {
+      throw new BadRequestException('You cannot send a message to yourself.');
+    }
+
+    if (!fileUrl) {
+      throw new BadRequestException('File URL is required.');
+    }
+
+    const receiver = await this.userModel.findByPk(receiverId);
+    if (!receiver) {
+      throw new NotFoundException('Receiver not found.');
+    }
+
+    let room = await this.chatRoomModel.findOne({
+      where: {
+        [Op.or]: [
+          { UserId1: senderId, UserId2: receiverId },
+          { UserId1: receiverId, UserId2: senderId },
+        ],
+      },
+      include: [
+        {
+          model: User,
+          as: 'user1',
+          attributes: ['id', 'name', 'email', 'imageUrl'],
+        },
+        {
+          model: User,
+          as: 'user2',
+          attributes: ['id', 'name', 'email', 'imageUrl'],
+        },
+      ],
+    });
+
+    if (!room) {
+      room = await this.chatRoomModel.create({
+        id: `${senderId}-${receiverId}`,
+        UserId1: senderId,
+        UserId2: receiverId,
+      });
+    }
+
+    return success('File uploaded successfully.', {
+      fileUrl,
+      senderId,
+      receiverId,
+      roomId: room.id,
+      type,
+    });
+  }
+
 }
