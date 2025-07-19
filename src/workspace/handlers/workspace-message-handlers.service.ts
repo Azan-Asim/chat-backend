@@ -79,6 +79,8 @@ export class WorkspaceMessageHandlersService {
             message_text: message.message_text,
             SenderId: senderId,
             Sender: sender,
+            type: message.type,
+            message_file_url: message_file_url,
             timestamp: message.createdAt,
             isRead: true,
             messageReads: [

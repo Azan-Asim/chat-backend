@@ -12,7 +12,9 @@ export const SUPPORTED_VIDEO_TYPES = [
 ];
 
 export const SUPPORTED_AUDIO_TYPES = [
-  'audio/mpeg',  // mp3
+  'audio/mpeg',
   'audio/wav',
-  'audio/ogg'
+  'audio/ogg',
+  'audio/webm',
+  'audio/opus',
 ];
