@@ -26,7 +26,7 @@ import { SendFileDto } from './dto/send-file.dto';
 export class ChatController {
   constructor(private readonly ChatService: ChatService) { }
 
-  @Get('chat_room/:id')
+  @Get('chatRooms/:id')
   @UseGuards(JwtAuthGuard)
   async getChatMessages(
     @Request() req: any,
@@ -43,67 +43,77 @@ export class ChatController {
     );
   }
 
-  @Get('chat_rooms')
-  getUserChatRooms(@Request() req: any) {
-    return this.ChatService.getUserChatRooms(req.user.id);
+  @Get('chatRooms')
+  getUserChatRooms(
+    @Request() req: any,
+    @Query('pageNo') pageNo: string,
+    @Query('pageSize') pageSize: string,
+  ) {
+    const userId = req.user.id;
+
+    return this.ChatService.getUserChatRooms(
+      userId,
+      Number(pageNo),
+      Number(pageSize),
+    );
   }
 
   @Post('/sendMessage')
-    @UseInterceptors(FilesInterceptor('files', 10, multerOptions))
-    @UseGuards(JwtAuthGuard)
-    async sendMessage(
-      @UploadedFiles() files: Express.Multer.File[],
-      @Request() req: Request,
-      @Body() body: SendMessageDto
-    ) {
-      const senderId = (req as any).user.id;
-  
-      const results: any[] = [];
-  
-      if (files && files.length > 0) {
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          let type: 'image' | 'audio' | 'video';
-  
-          if (file.mimetype.startsWith('image/')) {
-            type = 'image';
-          } else if (file.mimetype.startsWith('audio/')) {
-            type = 'audio';
-          } else if (file.mimetype.startsWith('video/')) {
-            type = 'video';
-          } else {
-            continue;
-          }
-  
-          const fileUrl = `/uploads/message/${type}/${file.filename}`;
-  
-          const result = await this.ChatService.sendMessage(
-            senderId,
-            body.receiverId,
-            body.content || '',
-            type,
-            fileUrl
-          );
-          results.push(result?.data,);
+  @UseInterceptors(FilesInterceptor('files', 10, multerOptions))
+  @UseGuards(JwtAuthGuard)
+  async sendMessage(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Request() req: Request,
+    @Body() body: SendMessageDto
+  ) {
+    const senderId = (req as any).user.id;
+
+    const results: any[] = [];
+
+    if (files && files.length > 0) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        let type: 'image' | 'audio' | 'video';
+
+        if (file.mimetype.startsWith('image/')) {
+          type = 'image';
+        } else if (file.mimetype.startsWith('audio/')) {
+          type = 'audio';
+        } else if (file.mimetype.startsWith('video/')) {
+          type = 'video';
+        } else {
+          continue;
         }
-  
-        return {
-          success: true,
-          message: `${results.length} sent successfully`,
-          data: results,
-        }
-      }
-  
-      if ((!files || files.length === 0) && body.content?.trim()) {
-        return this.ChatService.sendMessage(
+
+        const fileUrl = `/uploads/message/${type}/${file.filename}`;
+
+        const result = await this.ChatService.sendMessage(
           senderId,
           body.receiverId,
-          body.content
+          body.content || '',
+          type,
+          fileUrl
         );
+        results.push(result?.data,);
       }
-  
-      throw new BadRequestException('No content or valid files provided.');
+
+      return {
+        success: true,
+        message: `${results.length} sent successfully`,
+        data: results,
+      }
     }
+
+    if ((!files || files.length === 0) && body.content?.trim()) {
+      return this.ChatService.sendMessage(
+        senderId,
+        body.receiverId,
+        body.content
+      );
+    }
+
+    throw new BadRequestException('No content or valid files provided.');
+  }
 
   @Post('/uploadMessageFile')
   @UseInterceptors(FilesInterceptor('files', 10, multerOptions))

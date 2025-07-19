@@ -15,12 +15,18 @@ export class ChatService {
     @InjectModel(User) private userModel: typeof User,
   ) { }
 
-  async getUserChatRooms(userId: string) {
+  async getUserChatRooms(
+    userId: string,
+    pageNo?: number,
+    pageSize?: number
+  ) {
     try {
-      const chatRooms = await this.chatRoomModel.findAll({
-        where: {
-          [Op.or]: [{ UserId1: userId }, { UserId2: userId }],
-        },
+      const where = {
+        [Op.or]: [{ UserId1: userId }, { UserId2: userId }],
+      };
+
+      const queryOptions: any = {
+        where,
         include: [
           {
             model: User,
@@ -45,7 +51,18 @@ export class ChatService {
             ],
           },
         ],
-      });
+        order: [['updatedAt', 'DESC']], // optional: ensure latest first
+      };
+
+      if (pageNo && pageSize) {
+        queryOptions.limit = pageSize;
+        queryOptions.offset = (pageNo - 1) * pageSize;
+      }
+
+      const [chatRooms, totalCount] = await Promise.all([
+        this.chatRoomModel.findAll(queryOptions),
+        this.chatRoomModel.count({ where }),
+      ]);
 
       const data = chatRooms.map((room) => {
         const otherUser =
@@ -55,18 +72,19 @@ export class ChatService {
           (msg) => !msg.read && msg.ReceiverId === userId,
         ).length;
 
-        const lastMessage = [...room.Messages].sort(
-          (a, b) => +new Date(b.timestamp) - +new Date(a.timestamp),
-        )[0];
+        const lastMessage = [...room.Messages]
+          .sort(
+            (a, b) => +new Date(b.timestamp) - +new Date(a.timestamp),
+          )[0];
 
         return {
           roomId: room.id,
-          roomName: otherUser ? otherUser.name : 'Unknown',
+          roomName: otherUser?.name ?? 'Unknown',
           receiver: {
-            id: otherUser.id,
-            name: otherUser.name,
-            email: otherUser.email,
-            imageUrl: otherUser.imageUrl,
+            id: otherUser?.id,
+            name: otherUser?.name,
+            email: otherUser?.email,
+            imageUrl: otherUser?.imageUrl,
           },
           unreadMessages: unreadCount,
           lastMessage: lastMessage
@@ -80,11 +98,19 @@ export class ChatService {
         };
       });
 
-      return success("Chat rooms fetched successfully", data)
+      return success(
+        'Chat rooms fetched successfully',
+        data,
+        {
+          totals: totalCount,
+          ...(pageNo && pageSize
+            ? { pageNo, pageSize }
+            : {}),
+        }
+      );
     } catch (error) {
       console.error('Error fetching user chat rooms:', error);
-
-      return failure("Failed to fetch chat rooms")
+      return failure('Failed to fetch chat rooms');
     }
   }
 
