@@ -46,6 +46,7 @@ export class WorkspaceService {
               'type',
               'timestamp',
               'read',
+              'isDelete'
             ],
             separate: true,
             limit: 1,
@@ -312,6 +313,7 @@ export class WorkspaceService {
               'type',
               'timestamp',
               'read',
+              'isDelete'
             ],
             separate: true,
             limit: 1,

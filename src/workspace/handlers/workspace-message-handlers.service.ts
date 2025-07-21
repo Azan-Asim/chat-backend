@@ -16,6 +16,7 @@ export class WorkspaceMessageHandlersService {
   handle(server: Server, socket: Socket, onlineUsers: Map<string, Set<string>>) {
     this.handleSendMessage(server, socket, onlineUsers);
     this.handleEditMessage(server, socket, onlineUsers);
+    this.handleDeleteMessage(server, socket, onlineUsers);
     this.handleJoinWorkspace(socket);
     this.handleLeaveWorkspace(socket);
     this.handleDisconnect();
@@ -227,6 +228,128 @@ export class WorkspaceMessageHandlersService {
             id: lastMessage.id,
             message_text: lastMessage.message_text,
             type: lastMessage.type,
+            message_file_url: lastMessage.message_file_url,
+            timestamp: lastMessage.createdAt,
+          }
+          : null;
+
+        for (const member of workspaceMembers) {
+          const memberId = member.id;
+
+          const unread = await this.WorkspaceService.getWorkspaceUnreadCount(
+            updatedMsg.workspaceId,
+            memberId,
+          );
+
+          const sockets = onlineUsers.get(memberId);
+          if (sockets) {
+            for (const socketId of sockets) {
+              server.to(socketId).emit('newMessage', {
+                workspaceId: updatedMsg.workspaceId,
+                lastMessage: lastMessagePayload,
+                unreadMessages: unread.unreadedCount,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error editing message:', err);
+        socket.emit('error', { message: err.message || 'Failed to edit message' });
+      }
+    });
+  }
+
+   private handleDeleteMessage(server: Server, socket: Socket, onlineUsers: Map<string, Set<string>>) {
+    socket.on('deleteMessage', async ({ id }) => {
+      try {
+        const userId = socket.data.user.id;
+
+        console.log(userId, id)
+        const edited = await this.WorkspaceService.deleteMessage(userId, id);
+
+        if (!edited.message) {
+          socket.emit('error', { message: 'Message not found after editing' });
+          return;
+        }
+
+        const updatedMsg = await Message.findByPk(id, {
+          include: [
+            { model: User, as: 'Sender', attributes: ['id', 'name', 'email', 'imageUrl'] },
+          ],
+          attributes: [
+            'id',
+            'SenderId',
+            'workspaceId',
+            'editCount',
+            'editAt',
+            'isDelete',
+            'type',
+            'createdAt',
+            'message_text',
+            'message_file_url',
+          ],
+        });
+
+        if (!updatedMsg) {
+          socket.emit('error', { message: 'Message not found in DB' });
+          return;
+        }
+
+        const sender = updatedMsg.Sender;
+
+        const senderPlain = sender
+          ? {
+            id: sender.id,
+            name: sender.name,
+            email: sender.email,
+            imageUrl: sender.imageUrl,
+          }
+          : null;
+
+        const messagePayload = {
+          workspaceId: updatedMsg.workspaceId,
+          message: {
+            id: updatedMsg.id,
+            message_text: updatedMsg.message_text,
+            editCount: updatedMsg.editCount,
+            SenderId: updatedMsg.SenderId,
+            Sender: senderPlain,
+            type: updatedMsg.type,
+            isDelete: updatedMsg.isDelete,
+            message_file_url: updatedMsg.message_file_url,
+            timestamp: updatedMsg.createdAt,
+            isRead: true,
+          },
+        };
+
+        // Notify sender
+        socket.emit('receiveMessage', messagePayload);
+
+        // Notify others in workspace room
+        socket.to(updatedMsg.workspaceId).emit('receiveMessage', messagePayload);
+
+        const workspaceMembers = await User.findAll({
+          include: [
+            {
+              model: WorkspaceMember,
+              as: 'member',
+              where: { workspaceId: updatedMsg.workspaceId },
+            },
+          ],
+          attributes: ['id', 'name', 'email', 'imageUrl'],
+        });
+
+        const lastMessage = await Message.findOne({
+          where: { workspaceId: updatedMsg.workspaceId },
+          order: [['createdAt', 'DESC']],
+        });
+
+        const lastMessagePayload = lastMessage
+          ? {
+            id: lastMessage.id,
+            message_text: lastMessage.message_text,
+            type: lastMessage.type,
+            isDelete: lastMessage.isDelete,
             message_file_url: lastMessage.message_file_url,
             timestamp: lastMessage.createdAt,
           }
