@@ -865,4 +865,79 @@ export class WorkspaceService {
       data: member,
     };
   }
+
+  async editMessage(userId: string, id: string, message_text: string) {
+
+    try {
+      const message = await this.messageModel.findByPk(id, {
+        attributes: [
+          'id',
+          'SenderId',
+          'workspaceId',
+          'editCount',
+          'editAt',
+          'isDelete',
+          'type',
+          'createdAt',
+        ],
+      });
+
+      if (!message) {
+        throw new NotFoundException('Message Not Found');
+      }
+
+      if (message.SenderId !== userId || message.isDelete || message.type != 'text') {
+        throw new ForbiddenException("You can't edit this message");
+      }
+
+      const createdAt = new Date(message.createdAt);
+      const now = new Date();
+      const diffMs = now.getTime() - createdAt.getTime();
+      const diffMins = diffMs / (1000 * 60);
+
+      if (diffMins > 15) {
+        throw new ForbiddenException('You can no longer edit this message (time limit exceeded)');
+      }
+
+      message.message_text = message_text;
+      message.editCount += 1;
+      message.editAt = now;
+
+      await message.save();
+
+      return success('Message Edited Successfully', message);
+
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
+  async deleteMessage(req: any, id: string) {
+    const userId = req.user.id;
+
+    try {
+      const message = await this.messageModel.findByPk(id, {
+        attributes: [
+          'id',
+          'isDelete'
+        ],
+      });
+
+      if (!message) {
+        throw new NotFoundException('Message Not Found');
+      }
+
+      if (message.SenderId !== userId || message.isDelete) {
+        throw new ForbiddenException(`You can't edit this message`);
+      }
+
+      message.isDelete = true;
+
+      await message.save();
+
+      return success('Message deleted Successfully', message);
+
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
 }

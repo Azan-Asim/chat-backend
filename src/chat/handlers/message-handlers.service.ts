@@ -195,20 +195,6 @@ export class MessageHandlersService {
         return;
       }
 
-      const room = await ChatRoom.findOne({
-        where: {
-          [Op.or]: [
-            { UserId1: userId, UserId2: updatedMsg.Receiver.id },
-            { UserId1: updatedMsg.Receiver.id, UserId2: userId },
-          ],
-        },
-      });
-
-      if (!room) {
-        socket.emit('error', { message: 'Room not found' });
-        return;
-      }
-
       const messagePayload = {
         message: {
           id: updatedMsg.id,
@@ -235,7 +221,7 @@ export class MessageHandlersService {
       }
 
       const latestInRoom = await Message.findOne({
-        where: { RoomId: room.id },
+        where: { RoomId: updatedMsg.RoomId },
         order: [['createdAt', 'DESC']],
       });
 
@@ -245,14 +231,14 @@ export class MessageHandlersService {
       }
 
       const senderUnreadCount = await Message.count({
-        where: { read: false, ReceiverId: updatedMsg.Sender.id, RoomId: room.id },
+        where: { read: false, ReceiverId: updatedMsg.Sender.id, RoomId: updatedMsg.RoomId },
       });
       const receiverUnreadCount = await Message.count({
-        where: { read: false, ReceiverId: updatedMsg.Receiver.id, RoomId: room.id },
+        where: { read: false, ReceiverId: updatedMsg.Receiver.id, RoomId: updatedMsg.RoomId },
       });
 
       const updatedRoomForSender = {
-        roomId: room.id,
+        roomId: updatedMsg.RoomId,
         lastMessage: {
           senderId: latestInRoom.SenderId,
           receiverId: latestInRoom.ReceiverId,
@@ -266,7 +252,7 @@ export class MessageHandlersService {
       };
 
       const updatedRoomForReceiver = {
-        roomId: room.id,
+        roomId: updatedMsg.RoomId,
         lastMessage: {
           senderId: latestInRoom.SenderId,
           receiverId: latestInRoom.ReceiverId,

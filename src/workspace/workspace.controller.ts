@@ -12,6 +12,7 @@ import { CryptUtil } from 'src/utils/crypt.util';
 import { diskStorage } from 'multer';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/storage.config';
+import { editMessageDto } from './dto/edit-message.dto';
 
 @Controller('workspace')
 export class WorkspaceController {
@@ -128,7 +129,7 @@ export class WorkspaceController {
       if (!files || files.length === 0) {
         throw new BadRequestException('No files were uploaded.');
       }
-      
+
       const results: any[] = [];
 
       if (files && files.length > 0) {
@@ -147,7 +148,7 @@ export class WorkspaceController {
           }
 
           const fileUrl = `/uploads/message/${type}/${file.filename}`;
-          
+
           const result = await this.WorkspaceService.uploadMessageFile(
             senderId,
             workspaceId,
@@ -323,6 +324,26 @@ export class WorkspaceController {
       memberId,
       req.user.id,
     );
+  }
+
+  @Patch('editMessage/:id')
+  @UseGuards(JwtAuthGuard)
+  editMessage(
+    @Request() req: any,
+    @Param('id') id: string,
+    @Body() body: editMessageDto
+  ) {
+    const userId = (req as any).user.id
+    return this.WorkspaceService.editMessage(userId, id, body.message_text);
+  }
+
+  @Delete('deleteMessage/:id')
+  @UseGuards(JwtAuthGuard)
+  delteMessage(
+    @Request() req: any,
+    @Param('id') id: string,
+  ) {
+    return this.WorkspaceService.deleteMessage(req, id);
   }
 
 }
