@@ -911,14 +911,13 @@ export class WorkspaceService {
       throw new InternalServerErrorException(error);
     }
   }
-  async deleteMessage(req: any, id: string) {
-    const userId = req.user.id;
-
+  async deleteMessage(userId: string, id: string) {
     try {
       const message = await this.messageModel.findByPk(id, {
         attributes: [
           'id',
-          'isDelete'
+          'isDelete',
+          "SenderId"
         ],
       });
 
@@ -927,7 +926,11 @@ export class WorkspaceService {
       }
 
       if (message.SenderId !== userId || message.isDelete) {
-        throw new ForbiddenException(`You can't edit this message`);
+        throw new ForbiddenException({
+          ms: `You can't edit this message`,
+          userId,
+          message
+        });
       }
 
       message.isDelete = true;

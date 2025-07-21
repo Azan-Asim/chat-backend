@@ -343,7 +343,8 @@ export class WorkspaceController {
     @Request() req: any,
     @Param('id') id: string,
   ) {
-    return this.WorkspaceService.deleteMessage(req, id);
+    const userId = (req as any).user.id
+    return this.WorkspaceService.deleteMessage(userId, id);
   }
 
 }
