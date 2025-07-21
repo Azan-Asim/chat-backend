@@ -56,8 +56,11 @@ export class Message extends Model<Message, MessageCreationAttrs> {
   @Column
   declare editCount: number;
 
-  @Default(null)
-  @Column
+  @Column({
+    type: DataType.DATE,
+    allowNull: true,
+    defaultValue: null,
+  })
   declare editAt: Date | null;
 
   @Default(false)

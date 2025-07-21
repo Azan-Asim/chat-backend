@@ -5,7 +5,6 @@ import {
   Param,
   Post,
   Body,
-  Req,
   UseGuards,
   Query,
   UseInterceptors,
@@ -13,6 +12,8 @@ import {
   Request,
   BadRequestException,
   InternalServerErrorException,
+  Patch,
+  Delete,
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -20,6 +21,7 @@ import { SendMessageDto } from './dto/send-message.dto';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/storage.config';
 import { SendFileDto } from './dto/send-file.dto';
+import { editMessageDto } from './dto/edit-message.dto';
 
 @Controller('chat')
 @UseGuards(JwtAuthGuard)
@@ -171,6 +173,22 @@ export class ChatController {
     }
   }
 
+  @Patch('editMessage/:id')
+  editMessage(
+    @Request() req:any,
+    @Param('id') id:string,
+    @Body() body:editMessageDto
+  ) {
+    return this.ChatService.editMessage(req, id, body);
+  }
+
+  @Delete('deleteMessage/:id')
+  delteMessage(
+    @Request() req:any,
+    @Param('id') id:string,
+  ) {
+    return this.ChatService.deleteMessage(req, id);
+  }
 
   @Get('getUnreadCount')
   getUserMessagesUnreadCount(@Request() req) {
