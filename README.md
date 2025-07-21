@@ -47,6 +47,19 @@ To start the development server:
 pnpm start:dev
 ```
 
+## Sequelize Migrations
+
+#### Create new sequelize migrations
+
+````
+ npx sequelize-cli migration:generate --name <any-name>
+````
+
+### run sequelize migrations
+
+````
+npx sequelize-cli db:migrate
+````
 ---
 
 ## ✍️ Author

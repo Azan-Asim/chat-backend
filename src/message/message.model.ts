@@ -52,6 +52,18 @@ export class Message extends Model<Message, MessageCreationAttrs> {
   })
   declare type: 'text' | 'audio' | 'video' | 'image';
 
+  @Default(0)
+  @Column
+  declare editCount: number;
+
+  @Default(null)
+  @Column
+  declare editAt: Date | null;
+
+  @Default(false)
+  @Column
+  declare isDelete: boolean;
+
   @ForeignKey(() => ChatRoom)
   @Column
   declare RoomId: string;
@@ -80,6 +92,6 @@ export class Message extends Model<Message, MessageCreationAttrs> {
   @BelongsTo(() => Workspace, 'workspaceId')
   declare workspace: Workspace;
 
- @HasMany(() => MessageRead)
+  @HasMany(() => MessageRead)
   messageReads: MessageRead[];
 }
