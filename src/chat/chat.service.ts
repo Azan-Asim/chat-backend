@@ -166,6 +166,7 @@ export class ChatService {
         type: message.type,
         message_text: message.message_text,
         message_file_url: message.message_file_url,
+        editCount: message.editCount,
         timestamp: message.timestamp,
         Sender: {
           id: message.Sender.id,
@@ -343,8 +344,7 @@ export class ChatService {
     });
   }
 
-  async editMessage(req: any, id: string, body: editMessageDto) {
-    const userId = req.user.id;
+  async editMessage(userId: string, id: string, message_text:string) {
 
     try {
       const message = await this.messageModel.findByPk(id, {
@@ -377,7 +377,7 @@ export class ChatService {
         throw new ForbiddenException('You can no longer edit this message (time limit exceeded)');
       }
 
-      message.message_text = body.message_text;
+      message.message_text = message_text;
       message.editCount += 1;
       message.editAt = now;
 

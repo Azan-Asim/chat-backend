@@ -179,7 +179,8 @@ export class ChatController {
     @Param('id') id:string,
     @Body() body:editMessageDto
   ) {
-    return this.ChatService.editMessage(req, id, body);
+    const userId = (req as any ).user.id
+    return this.ChatService.editMessage(userId, id, body.message_text);
   }
 
   @Delete('deleteMessage/:id')
