@@ -16,6 +16,31 @@ import { editMessageDto } from './dto/edit-message.dto';
 export class WorkspaceController {
   constructor(private readonly WorkspaceService: WorkspaceService) { }
 
+  @Get('search')
+  @UseGuards(JwtAuthGuard)
+  async searchMessage(
+    @Request() req: any,
+    @Query('pageNo') pageNo: number,
+    @Query('pageSize') pageSize: number,
+    @Query('senderId') senderId: string,
+    @Query('workspaceId') workspaceId: string,
+    @Query('type') type: string,
+    @Query('query') searchQuery: string,
+  ) {
+
+    const searchParams = {
+      userId: req.user.id,
+      pageNo,
+      pageSize,
+      senderId,
+      type,
+      query: searchQuery,
+      workspaceId,
+    };
+
+    return this.WorkspaceService.search(searchParams);
+  }
+
   @Get('public')
   @UseGuards(JwtAuthGuard)
   async getPublicWorkspace(
