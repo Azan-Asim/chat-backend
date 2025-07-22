@@ -292,7 +292,7 @@ export class WorkspaceService {
           {
             model: WorkspaceMember,
             as: 'members',
-            where: { userId },
+            where: { userId, isRemoved: false },
           },
         ],
       });
@@ -323,7 +323,7 @@ export class WorkspaceService {
           {
             model: WorkspaceMember,
             as: 'members',
-            where: { userId },
+            where: { userId, isRemoved: false },
             include: [
               {
                 model: User,
