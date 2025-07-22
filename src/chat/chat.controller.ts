@@ -188,7 +188,8 @@ export class ChatController {
     @Request() req:any,
     @Param('id') id:string,
   ) {
-    return this.ChatService.deleteMessage(req, id);
+    const userId = (req as any ).user.id
+    return this.ChatService.deleteMessage(userId, id);
   }
 
   @Get('getUnreadCount')

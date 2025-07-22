@@ -53,6 +53,7 @@ export class RoomHandlersService {
               message_text: lastMessage.message_text,
               message_file_url: lastMessage.message_file_url,
               type: lastMessage.type,
+              isDelete: lastMessage.isDelete,
               timestamp: lastMessage.timestamp,
             }
             : null,

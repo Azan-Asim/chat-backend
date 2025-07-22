@@ -49,10 +49,11 @@ export class ChatService {
               'ReceiverId',
               'timestamp',
               'read',
+              'isDelete',
             ],
           },
         ],
-        order: [['updatedAt', 'DESC']], // optional: ensure latest first
+        order: [['updatedAt', 'DESC']],
       };
 
       if (pageNo && pageSize) {
@@ -95,6 +96,7 @@ export class ChatService {
               message_text: lastMessage.message_text,
               message_file_url: lastMessage.message_file_url,
               type: lastMessage.type,
+              isDelete: lastMessage.isDelete,
               timestamp: lastMessage.timestamp,
             }
             : null,
@@ -167,6 +169,7 @@ export class ChatService {
         message_text: message.message_text,
         message_file_url: message.message_file_url,
         editCount: message.editCount,
+        isDelete: message.isDelete,
         timestamp: message.timestamp,
         Sender: {
           id: message.Sender.id,
@@ -344,7 +347,7 @@ export class ChatService {
     });
   }
 
-  async editMessage(userId: string, id: string, message_text:string) {
+  async editMessage(userId: string, id: string, message_text: string) {
 
     try {
       const message = await this.messageModel.findByPk(id, {
@@ -389,14 +392,13 @@ export class ChatService {
       throw new InternalServerErrorException(error);
     }
   }
-  async deleteMessage(req: any, id: string) {
-    const userId = req.user.id;
-
+  async deleteMessage(userId: string, id: string) {
     try {
       const message = await this.messageModel.findByPk(id, {
         attributes: [
           'id',
-          'isDelete'
+          'isDelete',
+          'SenderId'
         ],
       });
 
@@ -405,7 +407,10 @@ export class ChatService {
       }
 
       if (message.SenderId !== userId || message.isDelete) {
-        throw new ForbiddenException(`You can't edit this message`);
+        throw new ForbiddenException({msg:`You can't edit this message`,
+          userId,
+          message
+        });
       }
 
       message.isDelete = true;
