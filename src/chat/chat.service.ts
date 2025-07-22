@@ -52,6 +52,18 @@ export class ChatService {
     const options: any = {
       where,
       order: [['createdAt', 'DESC']],
+       include: [
+        {
+          model: User,
+          as: 'Sender',
+          attributes: ['id', 'name', 'email', 'imageUrl']
+        },
+         {
+          model: User,
+          as: 'Receiver',
+          attributes: ['id', 'name', 'email', 'imageUrl']
+        }
+      ]
     };
 
     if (pageNo && pageSize) {

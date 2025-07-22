@@ -43,7 +43,7 @@ export class WorkspaceService {
     const where: Record<string, any> = {};
 
     if (!workspaceId) {
-      throw new ForbiddenException("workspaceId is required")
+      throw new ForbiddenException("workspaceId is required");
     } else {
       where.workspaceId = workspaceId;
     }
@@ -56,11 +56,23 @@ export class WorkspaceService {
     const options: any = {
       where,
       order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: User,
+          as: 'Sender',
+          attributes: ['id', 'name', 'email', 'imageUrl']
+        },
+         {
+          model: User,
+          as: 'Receiver',
+          attributes: ['id', 'name', 'email', 'imageUrl']
+        }
+      ]
     };
 
     if (pageNo && pageSize) {
-      const page = parseInt(pageNo as any, 10)
-      const limit = parseInt(pageSize as any, 10)
+      const page = parseInt(pageNo as any, 10);
+      const limit = parseInt(pageSize as any, 10);
       options.offset = (page - 1) * limit;
       options.limit = limit;
     }
@@ -68,13 +80,13 @@ export class WorkspaceService {
     const { count, rows } = await this.messageModel.findAndCountAll(options);
 
     return success('Fetch Successfully', rows, {
-
       ...(pageNo && pageSize
         ? { pageNo: Number(pageNo), pageSize: Number(pageSize) }
         : {}),
       total: count,
-    })
+    });
   }
+
 
   async getAllPublicWorkspaces(req: any, pageNo?: number, pageSize?: number) {
     const userId = req.user.id
