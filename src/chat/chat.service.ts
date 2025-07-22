@@ -19,14 +19,11 @@ export class ChatService {
     userId: string;
     pageNo: number;
     pageSize: number;
-    senderId?: string;
-    receiverId?: string;
-    type?: string;
-    query?: string;
-    roomId?: string;
-    createdAt?: string;
-    editCount?: number;
-    editAt?: string;
+    senderId: string;
+    receiverId: string;
+    type: string;
+    query: string;
+    roomId: string;
   }) {
     const {
       pageNo,
@@ -36,21 +33,19 @@ export class ChatService {
       type,
       query,
       roomId,
-      createdAt,
-      editCount,
-      editAt,
     } = params;
 
     const where: Record<string, any> = {};
 
-    if (roomId) where.roomId = roomId;
+    if (!roomId) {
+      throw new ForbiddenException("roomId is required")
+    } else {
+      where.roomId = roomId;
+    }
     if (senderId) where.senderId = senderId;
     if (receiverId) where.receiverId = receiverId;
     if (type) where.type = type;
     if (query) where.message_text = { [Op.like]: `%${query}%` };
-    if (createdAt) where.createdAt = { [Op.gte]: new Date(createdAt) };
-    if (editCount !== undefined) where.editCount = editCount;
-    if (editAt) where.editAt = new Date(editAt);
 
     where.isDelete = false;
 

@@ -38,13 +38,7 @@ export class ChatController {
     @Query('type') type: string,
     @Query('query') searchQuery: string,
     @Query('roomId') roomId: string,
-    @Query('createdAt') createdAt: string,
-    @Query('editCount') editCount: string,
-    @Query('editAt') editAt: string,
   ) {
-
-  const editCountNum = editCount ? parseInt(editCount, 10) : undefined;
-
 
     const searchParams = {
       userId: req.user.id,
@@ -55,9 +49,6 @@ export class ChatController {
       type,
       query: searchQuery,
       roomId,
-      createdAt,
-      editCount: editCountNum,
-      editAt,
     };
 
     return this.ChatService.search(searchParams);
