@@ -28,6 +28,41 @@ import { editMessageDto } from './dto/edit-message.dto';
 export class ChatController {
   constructor(private readonly ChatService: ChatService) { }
 
+ @Get('search')
+  async searchMessage(
+    @Request() req: any,
+    @Query('pageNo') pageNo: number,
+    @Query('pageSize') pageSize: number,
+    @Query('senderId') senderId: string,
+    @Query('receiverId') receiverId: string,
+    @Query('type') type: string,
+    @Query('query') searchQuery: string,
+    @Query('roomId') roomId: string,
+    @Query('createdAt') createdAt: string,
+    @Query('editCount') editCount: string,
+    @Query('editAt') editAt: string,
+  ) {
+
+  const editCountNum = editCount ? parseInt(editCount, 10) : undefined;
+
+
+    const searchParams = {
+      userId: req.user.id,
+      pageNo,
+      pageSize,
+      senderId,
+      receiverId,
+      type,
+      query: searchQuery,
+      roomId,
+      createdAt,
+      editCount: editCountNum,
+      editAt,
+    };
+
+    return this.ChatService.search(searchParams);
+  }
+
   @Get('chatRooms/:id')
   @UseGuards(JwtAuthGuard)
   async getChatMessages(

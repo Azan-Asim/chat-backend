@@ -6,7 +6,6 @@ import { Message } from '../message/message.model';
 import { User } from '../user/user.model';
 import { Op } from 'sequelize';
 import { failure, success } from 'src/utils/response.helper';
-import { editMessageDto } from './dto/edit-message.dto';
 
 @Injectable()
 export class ChatService {
@@ -15,6 +14,68 @@ export class ChatService {
     @InjectModel(Message) private messageModel: typeof Message,
     @InjectModel(User) private userModel: typeof User,
   ) { }
+
+  async search(params: {
+    userId: string;
+    pageNo: number;
+    pageSize: number;
+    senderId?: string;
+    receiverId?: string;
+    type?: string;
+    query?: string;
+    roomId?: string;
+    createdAt?: string;
+    editCount?: number;
+    editAt?: string;
+  }) {
+    const {
+      pageNo,
+      pageSize,
+      senderId,
+      receiverId,
+      type,
+      query,
+      roomId,
+      createdAt,
+      editCount,
+      editAt,
+    } = params;
+
+    const where: Record<string, any> = {};
+
+    if (roomId) where.roomId = roomId;
+    if (senderId) where.senderId = senderId;
+    if (receiverId) where.receiverId = receiverId;
+    if (type) where.type = type;
+    if (query) where.message_text = { [Op.like]: `%${query}%` };
+    if (createdAt) where.createdAt = { [Op.gte]: new Date(createdAt) };
+    if (editCount !== undefined) where.editCount = editCount;
+    if (editAt) where.editAt = new Date(editAt);
+
+    where.isDelete = false;
+
+    const options: any = {
+      where,
+      order: [['createdAt', 'DESC']],
+    };
+
+    if (pageNo && pageSize) {
+      const page = parseInt(pageNo as any, 10)
+      const limit = parseInt(pageSize as any, 10)
+      options.offset = (page - 1) * limit;
+      options.limit = limit;
+    }
+
+    const { count, rows } = await this.messageModel.findAndCountAll(options);
+
+    return success('Fetch Successfully', rows, {
+
+      ...(pageNo && pageSize
+        ? { pageNo: Number(pageNo), pageSize: Number(pageSize) }
+        : {}),
+      total: count,
+    })
+  }
 
   async getUserChatRooms(
     userId: string,
@@ -407,7 +468,8 @@ export class ChatService {
       }
 
       if (message.SenderId !== userId || message.isDelete) {
-        throw new ForbiddenException({msg:`You can't edit this message`,
+        throw new ForbiddenException({
+          msg: `You can't edit this message`,
           userId,
           message
         });

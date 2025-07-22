@@ -1,10 +1,8 @@
 import { BadRequestException, Body, Controller, Delete, Get, InternalServerErrorException, Param, Patch, Post, Query, Req, Request, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
 import { WorkspaceService } from './workspace.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-// import { OptionalJwtAuthGuard } from 'src/auth/OptionalJwtAuthGuard';
 import { UpdateWorkspaceDto } from './dto/updateWorkspace.dto';
 import { AddUserToPublicWorkspaceDto } from './dto/addUserToPublicWorkspace.dto';
-import { AddUserToPrivateWorkspaceDto } from './dto/addUserToPrivateWorkspace.dto copy';
 import { SendMessageDto } from './dto/sendMessage.dto';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -47,7 +45,6 @@ export class WorkspaceController {
     return this.WorkspaceService.addUserToWorkspace(req, workspaceId, userId);
   }
 
-
   @Get('private')
   @UseGuards(JwtAuthGuard)
   async getPrivateWorkspace(
@@ -57,6 +54,7 @@ export class WorkspaceController {
   ) {
     return this.WorkspaceService.getAllPrivateWorkspaces(Number(pageNo), Number(pageSize))
   }
+
   @Get('private/userWorkspaces')
   @UseGuards(JwtAuthGuard)
   async getUserPrivateWorkspaces(
@@ -77,7 +75,6 @@ export class WorkspaceController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
   @UseGuards(JwtAuthGuard)
   async getWorkspaceById(@Request() req: any, @Param('id') id: string) {
     return this.WorkspaceService.getWorkspaceById(req, id);
@@ -238,7 +235,6 @@ export class WorkspaceController {
     return this.WorkspaceService.getWorkspaceChats(req, id, Number(pageNo), Number(pageSize));
   }
 
-
   // rooms related routes
 
   @Get('members/:id')
@@ -252,7 +248,6 @@ export class WorkspaceController {
     const workspaceId = id
     return this.WorkspaceService.getWorkspaceMembers(userId, workspaceId, Number(pageNo), Number(pageSize))
   }
-
 
   @Post('/updateWorkspacePicture/:id')
   @UseGuards(JwtAuthGuard)
@@ -351,7 +346,7 @@ export class WorkspaceController {
 
   @Delete('deleteMessage/:id')
   @UseGuards(JwtAuthGuard)
-  delteMessage(
+  deleteMessage(
     @Request() req: any,
     @Param('id') id: string,
   ) {
