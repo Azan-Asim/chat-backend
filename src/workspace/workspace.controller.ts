@@ -102,15 +102,15 @@ export class WorkspaceController {
     return this.WorkspaceService.deleteWorkspaceById(req, id);
   }
 
-  @Delete(':workspaceId/member/:memberId')
-  @UseGuards(JwtAuthGuard)
-  async deleteWorkspaceMember(
-    @Request() req: any,
-    @Param('workspaceId') workspaceId: string,
-    @Param('memberId') memberId: string
-  ) {
-    return this.WorkspaceService.deleteWorkspaceMember(req, workspaceId, memberId);
-  }
+  // @Delete(':workspaceId/member/:memberId')
+  // @UseGuards(JwtAuthGuard)
+  // async deleteWorkspaceMember(
+  //   @Request() req: any,
+  //   @Param('workspaceId') workspaceId: string,
+  //   @Param('memberId') memberId: string
+  // ) {
+  //   return this.WorkspaceService.deleteWorkspaceMember(req, workspaceId, memberId);
+  // }
 
 
   // message Related Routes
@@ -322,6 +322,18 @@ export class WorkspaceController {
   ) {
     return this.WorkspaceService.deleteMemberById(
       memberId,
+      req.user.id,
+    );
+  }
+
+  @Delete('/leaveWorkspace/:id')
+  @UseGuards(JwtAuthGuard)
+  async leaveWorkspaceById(
+    @Param('id') workspaceId: string,
+    @Req() req: any,
+  ) {
+    return this.WorkspaceService.leaveWorkspaceById(
+      workspaceId,
       req.user.id,
     );
   }

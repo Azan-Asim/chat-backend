@@ -9,11 +9,12 @@ import { CryptUtil } from 'src/utils/crypt.util';
 import { Message } from 'src/message/message.model';
 import { MessageRead } from 'src/message/messageRead.model';
 import { Sequelize } from 'sequelize-typescript';
-import { WorkspaceChatGateway } from './gateway/gateway';
+import { Op } from 'sequelize';
 
 @Injectable()
 export class WorkspaceService {
   constructor(
+    private readonly sequelize: Sequelize,
     @InjectModel(Workspace) private workspaceModel: typeof Workspace,
     @InjectModel(WorkspaceMember) private workspaceMemberModel: typeof WorkspaceMember,
     @InjectModel(Message) private messageModel: typeof Message,
@@ -512,7 +513,7 @@ export class WorkspaceService {
       throw new ForbiddenException('You are not allowed to remove this member');
     }
 
-    await member.destroy();
+    // await member.destroy();
 
     return success('Member removed successfully', member);
   }
@@ -712,7 +713,6 @@ export class WorkspaceService {
     }
   }
 
-
   async getWorkspaceMembers(userId: string, workspaceId: string, pageNo?: number, pageSize?: number) {
     try {
       const workspace = await Workspace.findByPk(workspaceId);
@@ -836,10 +836,8 @@ export class WorkspaceService {
       throw new InternalServerErrorException(error)
     }
   }
-  async deleteMemberById(
-    memberId: string,
-    currentUserId: string,
-  ) {
+
+  async deleteMemberById(memberId: string, currentUserId: string) {
     const member = await this.workspaceMemberModel.findByPk(memberId);
 
     if (!member) {
@@ -866,6 +864,68 @@ export class WorkspaceService {
       message: 'Member deleted successfully',
       data: member,
     };
+  }
+
+  async leaveWorkspaceById(workspaceId: string, userId: string) {
+    const transaction = await this.sequelize.transaction();
+
+    try {
+      const member = await this.workspaceMemberModel.findOne({
+        where: { workspaceId, userId, isRemoved: false },
+        transaction,
+      });
+
+      if (!member) {
+        throw new NotFoundException('Workspace member not found');
+      }
+
+      const isAdmin = member.type === 'admin';
+
+      if (isAdmin) {
+        // Check if any other admin exists
+        const otherAdmin = await this.workspaceMemberModel.findOne({
+          where: {
+            workspaceId,
+            userId: { [Op.ne]: userId },
+            type: 'admin',
+            isRemoved: false,
+          },
+          transaction,
+        });
+
+        if (!otherAdmin) {
+          // No other admin — promote a random member to admin
+          const randomMember = await this.workspaceMemberModel.findOne({
+            where: {
+              workspaceId,
+              userId: { [Op.ne]: userId },
+              isRemoved: false,
+            },
+            order: this.sequelize.random(),
+            transaction,
+          });
+
+          if (randomMember) {
+            randomMember.type = 'admin';
+            await randomMember.save({ transaction });
+          } else {
+            throw new BadRequestException(
+              'Cannot leave workspace. No other members to promote to admin.'
+            );
+          }
+        }
+      }
+
+      member.isRemoved = true;
+      await member.save({ transaction });
+
+      await transaction.commit();
+
+      return success('Left workspace successfully', member)
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
   }
 
   async editMessage(userId: string, id: string, message_text: string) {
@@ -913,6 +973,7 @@ export class WorkspaceService {
       throw new InternalServerErrorException(error);
     }
   }
+
   async deleteMessage(userId: string, id: string) {
     try {
       const message = await this.messageModel.findByPk(id, {
