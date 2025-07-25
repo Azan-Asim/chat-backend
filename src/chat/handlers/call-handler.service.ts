@@ -42,7 +42,7 @@ export class CallHandlersService {
   private async handleOffer(
     server: Server,
     socket: Socket,
-    data: { to: string; sdp: any },
+    data: { type?: string, to: string; sdp: any },
     onlineUsers: Map<string, Set<string>>,
     socketUserMap: Map<string, string>,
   ) {
@@ -52,25 +52,26 @@ export class CallHandlersService {
       attributes: ['id', 'name', 'imageUrl', 'email']
     })
 
-     let room = await ChatRoom.findOne({
-              where: {
-                [Op.or]: [
-                  { UserId1: fromUserId, UserId2: data.to },
-                  { UserId1: data.to, UserId2: fromUserId },
-                ],
-              },
-    
-              include: [
-                { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'imageUrl'] },
-                { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'imageUrl'] },
-              ],
-            });
+    let room = await ChatRoom.findOne({
+      where: {
+        [Op.or]: [
+          { UserId1: fromUserId, UserId2: data.to },
+          { UserId1: data.to, UserId2: fromUserId },
+        ],
+      },
+
+      include: [
+        { model: User, as: 'user1', attributes: ['id', 'name', 'email', 'imageUrl'] },
+        { model: User, as: 'user2', attributes: ['id', 'name', 'email', 'imageUrl'] },
+      ],
+    });
 
     const targetSockets = onlineUsers.get(data.to);
 
     if (targetSockets && targetSockets.size > 0) {
       targetSockets.forEach((targetSocketId) => {
         server.to(targetSocketId).emit('offer', {
+          ...(data.type === "negotiation" && { type: "negotiation" }),
           from: user,
           roomId: room?.id,
           sdp: data.sdp,
@@ -93,10 +94,15 @@ export class CallHandlersService {
     console.log(`✅ Answer from ${fromUserId} to ${data.to}`);
 
     const targetSocketIds = onlineUsers.get(data.to);
+
+    const user = await User.findByPk(fromUserId, {
+      attributes: ['id', 'name', 'imageUrl', 'email']
+    })
+
     if (targetSocketIds && targetSocketIds.size > 0) {
       targetSocketIds.forEach((targetSocketId) => {
         server.to(targetSocketId).emit('answer', {
-          from: fromUserId,
+          from: user,
           sdp: data.sdp,
         });
       });
