@@ -9,6 +9,7 @@ import { AuthModule } from 'src/auth/auth.module';
 import { GatewayModule } from './gateway/gateway.module';
 import { RoomHandlersService } from './handlers/room-handlers.service';
 import { MessageHandlersService } from './handlers/message-handlers.service';
+import { CallHandlersService } from './handlers/call-handler.service';
 
 @Module({
    imports: [
@@ -17,7 +18,7 @@ import { MessageHandlersService } from './handlers/message-handlers.service';
     GatewayModule,
   ],
   controllers: [ChatController],
-  providers: [ChatService, MessageHandlersService, RoomHandlersService],
+  providers: [ChatService, MessageHandlersService, RoomHandlersService, CallHandlersService],
   exports: [ChatService]
 })
 export class ChatModule {}
